@@ -2,6 +2,7 @@ using Documenter
 using RCDesignSuite
 
 makedocs(
+    modules     = [RCDesignSuite],
     sitename    = "RCDesignSuite.jl",
     format      = Documenter.HTML(),
     pages       = [
@@ -11,7 +12,6 @@ makedocs(
         "API Reference" => "reference.md",
         "Theory" => "theory.md"
     ],
-    modules     = [RCDesignSuite],
     repo        = "https://github.com/BYU-Aeronautics-Club/RCDesignSuite.jl/blob/{commit}{path}#L{line}",
     authors     = "Judd Mehr <juddmehr@gmail.com>",
 )
