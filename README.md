@@ -9,7 +9,7 @@ A suite of tools for conceptual and preliminary design of basic RC airplanes bas
 
 ## Dependencies:
 
-<!-- - [Atmosphere.jl](https://github.com/byuflowlab/Atmosphere.jl) : a standard atmosphere model -->
+- [Atmosphere.jl](https://github.com/byuflowlab/Atmosphere.jl) : a standard atmosphere model
 - [CCBlade.jl](https://github.com/byuflowlab/CCBlade.jl) : a blade element momentum code with guarenteed convergence, suitable for gradient-based optimization
 - [Composites.jl](https://github.com/byuflowlab/Composites.jl) : a compilation of composite structure theory calculations
 - [FLOWMath.jl](https://github.com/byuflowlab/FLOWMath.jl) : various mathematical tools, including Akima splines.
