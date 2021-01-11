@@ -1,5 +1,9 @@
 module RCDesignSuite
 
-greet() = print("Hello World!")
+#import packages
+import PyPlot
+
+#include code
+include("commonplots.jl")
 
 end # module
