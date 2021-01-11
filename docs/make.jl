@@ -1,5 +1,4 @@
-using Documenter
-using RCDesignSuite
+using Documenter, RCDesignSuite
 
 makedocs(
     modules     = [RCDesignSuite],
