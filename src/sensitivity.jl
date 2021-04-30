@@ -379,11 +379,11 @@ THEN YOU NEED TO PICK WHICH ONES YOU WANT ON THE FINAL PLOT
 #=
 Note: in this example, all the payload things have the same sensitivities, so we'll put them all together.  Also the wing loading and drag coefficient are the same, so they are together.  It also turns out that weight doesn't matter, so we'll  leave it out.  Furthermore, all the battery and efficiency stuff goes into available power, so we'll combine them under that heading.
 =#
-toplot = [1;2;3;5;10]
+toplot = [1;3;5;10]
 #get the plot labels you want to show for those variables
 toplotlabels = ["Weight";"Wing Area"; "Parasitic Drag"; "Payload"; "Available Power"]
 #pick your colors
-colors = ["C0";"C1";"C3";"C0";"C1";"C2"]
+colors = ["C0";"C1";"C2";"C0";"C1";"C2"]
 #pick your styles.
 styles = ["-";"-";"-";"--";"--";"--"]
 
@@ -401,7 +401,7 @@ for i=1:length(toplot)
 end
 legend()
 #save the figure.
-savefig("../reports/template/designreport/figures/sensitivityobj.pdf",bbox_inches="tight")
+savefig("figs/sensitivityobj.png",bbox_inches="tight")
 
 
 #### MAYBE PLOT THE DERIVATIVES INSTEAD, IF THAT MAKES MORE SENSE ####
@@ -416,4 +416,4 @@ for i=1:length(toplot)
 end
 legend()
 #save the figure.
-savefig("../reports/template/designreport/figures/sensitivitydobj.pdf",bbox_inches="tight")
+savefig("figs/sensitivitydobj.png",bbox_inches="tight")
