@@ -5,7 +5,7 @@ Several ready-made plotting functions for common plots
 =#
 
 
-export standardizeafs, plotaf, plotpolar, ploteigenvals, plotbasic, plotpropefficiency, plotdragbars, plotliftdist, plotLoverDvVel, plotLoverDvCL
+export standardizeafs, plotaf, plotpolar, ploteigenvals, plotbasic, plotpropefficiency, plotdragbars, plotliftdist, plotLoverDvVel, plotLoverDvCL, plotLoverD
 
 
 
@@ -445,7 +445,8 @@ Plot L/D vs Airspeed.
 - savepath::String : path to location of where to save file
 - wh::Tuple : width and height of figure, default = (4,3)
 """
-function plotLoverDvVel(filename,datapath,labels;
+function plotLoverDvVel(filename,labels;
+    datapath        = "./data/aircraft/",
     designvelocity  = nothing,
     units           = "metric",
     savefigure      = true,
@@ -454,11 +455,13 @@ function plotLoverDvVel(filename,datapath,labels;
     wh              = (4,3))
 
     #Read data
-    V, LD = readxflrgraphs(datapath*filename)
+    V, LD = RCDesignSuite.readxflrgraphs(datapath*filename)
 
     if units == "metric"
         V *= 3.28084 #convert to ft/s from m/s
-        designvelocity *= 3.28084
+        if designvelocity != nothing
+            designvelocity *= 3.28084
+        end
     end
 
     plt.figure(figsize=wh)
@@ -466,7 +469,7 @@ function plotLoverDvVel(filename,datapath,labels;
     plt.xlabel("Velocity (ft/s)")
 
     for i=1:length(V[1,:])
-        plt.plot(V,LD,label=labels[i])
+        plt.plot(V[:,i],LD[:,i],label=labels[i])
     end
     if designvelocity !== nothing
         plt.plot([designvelocity; designvelocity], [minimum(LD); maximum(LD)],"--",label="Cruise Velocity")
@@ -524,7 +527,7 @@ function plotLoverDvCL(filename,datapath,labels;
     plt.xlabel(plt.L"Lift Coefficient ($C_L$)")
 
     for i=1:length(CL[1,:])
-        plt.plot(CL,LD,label=labels[i])
+        plt.plot(CL[:,i],LD[:,i],label=labels[i])
     end
     if designcl !== nothing
         plt.plot([designcl; designcl], [minimum(LD); maximum(LD)],"--",label="Design Lift Coefficient")
@@ -547,7 +550,42 @@ function plotLoverDvCL(filename,datapath,labels;
 
 end
 
+"""
+"""
+function plotLoverD(filename,labels;
+    datapath    = "./data/aircraft/",
+    savefigure  = true,
+    savefile    = nothing,
+    savepath    = nothing,
+    wh          = (4,3))
 
+    #Read data
+    CD, CL = readxflrgraphs(datapath*filename)
+
+    plt.figure(figsize=wh)
+    plt.xlabel(plt.L"Drag Coefficient ($C_D$)")
+    plt.ylabel(plt.L"Lift Coefficient ($C_L$)")
+
+    for i=1:length(CL[1,:])
+        plt.plot(CD[:,i],CL[:,i],label=labels[i])
+    end
+    plt.legend()
+
+    #save the figure
+    if savefigure
+        if savepath === nothing
+            savepath = "./figs/"
+        end
+
+        if savefile === nothing
+            savefile = "CL_v_CD.pdf"
+        end
+
+        plt.savefig(savepath*savefile, bbox_inches="tight")
+
+    end
+
+end
 
 #######################
 ###### STABILITY ######
@@ -568,7 +606,7 @@ Checks for negative values in the first array and deletes the idices from both a
 function removenegatives!(checkarray,followarray)
     #get indices for negative ys
     negidx = findall(x->x<0,checkarray)
-    println(negidx)
+
     #remove negative imaginary entries
     deleteat!(checkarray,negidx)
     deleteat!(followarray,negidx)
@@ -597,14 +635,16 @@ It is assumed that all configurations are contained in the same file (as what ha
 - lonmodenames::Array{String} : array of longitudinal mode names for plot annotation, default = ["Short Period";"Phugoid"]
 - latmodenames::Array{String} : array of lateral mode names for plot annotation, default = ["Roll";"Dutch Roll";"Spiral"]
 """
-function ploteigenvals(nconfig, latfilename, lonfilename, datapath, labels;
+function ploteigenvals(nconfig, latfilename, lonfilename, labels;
+                datapath        = "./data/stability/",
                 savefigure      = true,
                 savefile        = nothing,
                 savepath        = nothing,
                 wh              = (6,4),
                 lonmodenames    = ["Short Period";"Phugoid"],
                 latmodenames    = ["Roll";"Dutch Roll";"Spiral"],
-                colorcycle      = ["C0"; "C3"]
+                colorcycle      = ["C0"; "C2"; "C3"],
+                markercycle     = ["s"; "^"; "."]
                 )
 
     latr = zeros(3,nconfig)
@@ -613,12 +653,12 @@ function ploteigenvals(nconfig, latfilename, lonfilename, datapath, labels;
     loni = zeros(2,nconfig)
 
     #Read and define the 3 lateral modes
-    res, ims = readxflrgraphs(datapath*latfilename)
+    res, ims = RCDesignSuite.readxflrgraphs(datapath*latfilename)
     #just grab the first row, since everything else is repeats
     res = res[1,:]
     ims = ims[1,:]
     #remove negatives so we just plot one quadrant (since it's symmetric)
-    removenegatives!(ims,res)
+    RCDesignSuite.removenegatives!(ims,res)
 
     #load arrays for plotting
     for i=1:nconfig
@@ -626,10 +666,10 @@ function ploteigenvals(nconfig, latfilename, lonfilename, datapath, labels;
     end
 
     #Repeat for the 2 logitudinal modes
-    res, ims = readxflrgraphs(datapath*lonfilename)
+    res, ims = RCDesignSuite.readxflrgraphs(datapath*lonfilename)
     res = res[1,:]
     ims = ims[1,:]
-    removenegatives!(ims,res)
+    RCDesignSuite.removenegatives!(ims,res)
     for i=1:nconfig
         lonr[:,i], loni[:,i] = res[2*(i-1)+1:2*i], ims[2*(i-1)+1:2*i]
     end
@@ -642,37 +682,39 @@ function ploteigenvals(nconfig, latfilename, lonfilename, datapath, labels;
     #lateral modes
     for j=1:3
         for i=1:nconfig
-            if latr[j,i] > 0
-                color = "C1"
-            else
-                color = colorcycle[i]
-            end
+            # if latr[j,i] > 0
+            #     color = "C1"
+            # else
+            color = colorcycle[i]
+            marker = markercycle[i]
+            # end
 
-            if i==1
-                plt.plot(latr[j,i],lati[j,i],color=color,marker="o",label=labels[i])
+            if j==1
+                plt.plot(latr[j,i],lati[j,i],color=color,marker=marker,label=labels[i])
             else
-                plt.plot(latr[j,i],lati[j,i],color=color,marker="o",label="")
+                plt.plot(latr[j,i],lati[j,i],color=color,marker=marker,label="")
             end
         end
-        plt.annotate(latmodenames[j],xy=[maximum(latr[j,:])+0.25,maximum(lati[j,:])-0.03125],color="k")
+        plt.annotate(latmodenames[j],xy=[maximum(latr[j,:])+0.5,maximum(lati[j,:])-0.03125],color="k")
     end
 
     #lonitudinal modes
     for j=1:2
         for i=1:nconfig
-            if lonr[j,i] > 0
-                color = "C1"
-            else
-                color = colorcycle[i]
-            end
+            # if lonr[j,i] > 0
+            #     color = "C1"
+            # else
+            color = colorcycle[i]
+            marker = markercycle[i]
+            # end
 
-            if i==1
-                plt.plot(lonr[j,i],loni[j,i],color=color,marker="o",label=labels[i])
+            if j==1
+                plt.plot(lonr[j,i],loni[j,i],color=color,marker=marker,label="")
             else
-                plt.plot(lonr[j,i],loni[j,i],color=color,marker="o",label="")
+                plt.plot(lonr[j,i],loni[j,i],color=color,marker=marker,label="")
             end
         end
-        plt.annotate(lonmodenames[j],xy=[maximum(lonr[j,:])+0.25,maximum(loni[j,:])-0.03125],color="k")
+        plt.annotate(lonmodenames[j],xy=[maximum(lonr[j,:])+0.5,maximum(loni[j,:])-0.03125],color="k")
     end
 
     #set axis bounds
@@ -680,7 +722,7 @@ function ploteigenvals(nconfig, latfilename, lonfilename, datapath, labels;
     yhi = max(maximum(lati),maximum(loni))+0.5
     plt.ylim([ylow,yhi])
     xlow = min(minimum(latr),minimum(lonr))-0.5
-    xhi = 2.0
+    xhi = 4.9
     plt.xlim([xlow,xhi])
 
     #add a dotted line at the boundary of the left half plane
@@ -692,6 +734,7 @@ function ploteigenvals(nconfig, latfilename, lonfilename, datapath, labels;
     ax[:spines]["right"][:set_visible](true)
     ax[:yaxis][:set_label_position]("right")
     ax[:yaxis][:set_ticks_position]("right")
+    plt.legend()
 
     #save the figure
     if savefigure
