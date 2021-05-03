@@ -7,363 +7,283 @@ using FLOWMath
 ####################         MISSION OBJECTIVES       ####################
 ##########################################################################
 
+#=
+This is where you input your mission objective functions.  Typically, the ground mission is hard to quantify without a lot of testing, but can be added.  In addition, the first flight mission is typically completion based, and therefore unnecessary to add here.
+=#
+
 """
-    mission2(inputs)
+    mission2(inputs, normalization_factor=1.0)
 
 Calculates score from mission 2 based on relavent inputs.
 
 **Inputs:**
-- num_sensors::Int64 : the number of sensors.
-- time::Float64 : the time to complete 3 laps, in seconds.
 """
-function mission2(num_sensors, time)
+function mission2(inputs=0.0, normalization_factor=1.0)
 
-    global maxM2 #note, using globals like this is poor form, but convenient.
+    # TODO: This is where you put the mission 2 function.  Note that the inputs variable is probably an array that you'll want to unpack before using.
 
-    M2 = num_sensors/time
+    raw_score = inputs
 
-    if M2 > maxM2
-        global maxM2 = M2
-    end
+    return raw_score/normalization_factor
 
-    return 1.0 + M2/maxM2
 end
 
 
 """
-    mission3(inputs)
+    mission3(inputs, normalization_factor=1.0)
 
 Calculates score from mission 3 based on relavent inputs.
 
 **Inputs:**
-- num_laps::Int64 : the number of laps completed in 10 minutes.
-- length_sensor::Float64 : the length of the sensor, in meters.
-- weight_sensor::Float64 : the weight of the sensor, in kilograms.
 """
-function mission3(num_laps, length_sensor, weight_sensor)
-    global maxM3
+function mission3(inputs=0.0, normalization_factor=1.0)
 
-    M3 = num_laps * length_sensor * weight_sensor
+    # TODO: This is where you put the mission 3 function.  Note that the inputs variable is probably an array that you'll want to unpack before using.
 
+    raw_score = inputs
 
-    if M3 > maxM3
-        global maxM3 = M3
-    end
+    return raw_score/normalization_factor
 
-    return 2.0 + M3/maxM3
 end
 
 
-
-##########################################################################
-####################         HAND CALCULATIONS        ####################
-##########################################################################
-
 """
-    get_thrust(P, V)
+    ground_mission(inputs, normalization_factor=1.0)
 
-Calculate thrust from available power and velocity.
+!!OPTIONAL!!
+
+Calculates score from ground mission based on relavent inputs.
 
 **Inputs:**
-- P::Float64 : power, in watts
-- V::Float64 : velocity, in meters per seconds
 """
-function get_thrust(P, V)
-    return P/V
-end
+function ground_mission(inputs=0.0, normalization_factor=1.0)
 
+    # TODO: This is where you put the mission 3 function.  Note that the inputs variable is probably an array that you'll want to unpack before using.
 
-"""
-    gross_battery_power(capacity, C, voltage)
+    raw_score = inputs
 
-Calculate theoretical max battery power.
-
-**Inputs:**
-- capacity::Float64 : battery capacity in amp-hours
-- C::Float64 : C-rating of LiPo battery
-- voltage::Float64 : voltage of battery, in volts
-"""
-function get_battery_power(capacity, C, voltage)
-    return capacity*C*voltage
-end
-
-
-"""
-    available_power(gross_battery_power,eta_battery, eta_motor, eta_prop)
-
-Calculate available power based on efficiencies.
-
-**Inputs:**
-- gross_battery_power::Float64 : theoretical max batter power, in Watts
-- eta::Float64 : efficiency factor for battery, motor, and propeller (propulsive efficiency factor)
-"""
-function get_available_power(gross_battery_power,eta)
-    return gross_battery_power * eta
-end
-
-
-"""
-    maxvelocity(Ta, W, S, rho, CD0, K=0.38)
-
-Calculate maximum velocity.
-
-**Inputs:**
-- Ta::Float64 : maximum thrust available, in Newtons
-- W::Float64 : total aircraft weight, in Newtons
-- S::Float64 : area of wing in square meters
-- CD0::Float64 : zero-lift drag coefficient of the aircraft.
-- rho::Float64 : air density in kg/m^3, default is 1.225
-- K::Float64 : empirical constant (default = 0.38)
-"""
-function maxvelocity(Ta, W, S, CD0, rho=1.225, K=0.38)
-
-    num = ( (Ta/S) + (W/S)*sqrt((Ta/W)^2 - 4*CD0*K) )
-
-    den = rho * CD0
-
-    return sqrt( num / den )
+    return raw_score/normalization_factor
 
 end
 
 
-"""
-    get_weight(weights)
-
-Sums up weights and returns total.
-
-**Inputs:**
-- weight::Array{Float64} : Array of weights
-"""
-function get_weight(weights)
-    return sum(weights)
-end
-
-#= Currently Unused
-"""
-    get_oswald_factor(einv, CDp, AR, K=0.38)
-
-Calculate the Oswald efficiency factor.
-
-**Inputs:**
-- einv::Float64 : inviscid span efficiency
-- CDp::Float64 : parasitic drag coefficient
-- AR::Float64 : wing aspectratio
-- K::Float64 : empirical constant, default=0.38
-"""
-function get_oswald_factor(einv, CDp, AR, K=0.38)
-    return 1 / ( (1/einv) + K*CDp*pi*AR)
-end
-
-
-"""
-eta_span(fuse_diameter, span)
-
-Calculate inviscid span efficiency.
-
-**Inputs:**
-- fd::Float64 : fuselage diameter, in meters
-- b::Float64 : wing span, in meters.
-"""
-function get_e(fd, b)
-    return 0.98*(1-2*(fd/b)^2)
-end
-=#
 
 ############################################################################
 #####################        OBJECTIVE FUNCTION        #####################
 ############################################################################
+"""
+    objective(design_variables)
 
-function objective(x0)
-
-    #unpack design parameters
-    W               = x0[1]
-    S               = x0[2]
-    CD0             = x0[3]
-    lap_distance    = x0[4]
-    num_sensors     = x0[5]
-    length_sensor   = x0[6]
-    weight_sensor   = x0[7]
-    M2_laps         = x0[8]
-    maxtime         = x0[9]
-    eta             = x0[10]
-    batteryC        = x0[11]
-    batterycells    = x0[12]
-    batterycapacity = x0[13]
-
-    batteryvoltage = batterycells*3.7
-
-    P = get_battery_power(batterycapacity, batteryC, batteryvoltage)
-    Pa = get_available_power(P,eta)
-
-    ### MISSION 2 ###
-
-    #get loaded weight for mission 2
-    W2 = get_weight([W; weight_sensor*num_sensors])
-
-    #get velocity for mission 2, assume max velocity the whole time
-    findV2(V) = maxvelocity(get_thrust(Pa,V), W2, S, CD0) - V
-    V2 = fzero(findV2,1.0,1000.0)[1]
-
-    #get time for mission 2 completion
-    time2 = lap_distance*M2_laps/V2
+Function that takes in design variables and outputs the overall normalized mission score. (For the objective functions above.)
+"""
+function objective(design_variables; return_all=false)
 
 
-    ### MISSION 3 ###
+    ### UNPACK DESIGN VARIABLES ###
+    # TODO: Here is where you unpack the relevant design variables. For example:
 
-    #get loaded weight for mission 3
-    W3 = get_weight([W; weight_sensor])
+    W               = design_variables[1] # Aircraft Weight
+    S               = design_variables[2] # Wing Area
+    CD0             = design_variables[3] # Zero Lift Drag Coeff of Aircraft
+    eta             = design_variables[4] # Total Propulsive Efficiency
+    P               = design_variables[5] # Available Battery Power
 
-    #get velocity for mission 3, assume max velocity the whole time
-    findV3(V) = maxvelocity(Pa/V, W3, S, CD0) - V
-    V3 = find_zeros(findV3,1.0,1000.0)[1]
+    #TODO: If you want to keep everything else the same, you can add more variables here.
 
-    #get time for a single lap in mission 3
-    time3 = lap_distance/V3
+    # Normalization Factors are the last 3 inputs in this example
+    GM_norm_factor  = design_variables[end-2] # Ground Mission Normalization Factor
+    M2_norm_factor  = design_variables[end-1] # Flight Mission 2 Normalization Factor
+    M3_norm_factor  = design_variables[end] # Flight Mission 3 Normalization Factor
 
-    #get number of laps completable in time
-    num_laps = maxtime/time3
+    ### GROUND MISSION ###
+    # TODO: Here is where you set up the inputs for the ground mission if you desire.  Note that the function is set up to return zero by default.
+
+    GM = ground_mission()
+
+
+    ### FLIGHT MISSION 2 ###
+    # TODO: Here is where you set up the inputs for flight mission 2 and call the objective function.
+
+    M2 = mission2(M2_inputs, M2_norm_factor)
+
+
+    ### FLIGHT MISSION 3 ###
+    # TODO: Here is where you set up the inputs for flight mission 3 and call the objective function.
+
+    M3 = mission3(M3_inputs, M2_norm_factor)
+
+
 
     ### SUM UP OBJECTIVES ###
 
-    M2 = mission2(num_sensors, time2)
+    totalpoints = 100.0 + 1.0 + GM + M2 + M3 #assumes perfect score (100.0) on report and M1 completion (1.0)
 
-    #convert units for metrics:
-    length_sensor *= 39.3701 #meters to inches
-    weight_sensor *= 35.274 #kg to oz
-
-    M3 = mission3(num_laps, length_sensor, weight_sensor)
-    totalpoints = 100.0 + 1.0 + 1.0 + M2 + M3 #assumes perfect on report and GM and M1 completion.
-
-    return totalpoints
+    if return_all
+        return totalpoints, GM, M2, M3
+    else
+        return totalpoints
+    end
 
 end
 
 
 
 ############################################################################
-#####################        SENSITIVITY STUDY         #####################
+#####################        objective STUDY         #####################
 ############################################################################
 
-#for missions 2 and 3, create globals so we can find the max of our sensitivity study in order to have a denominator for the overall scoring, keeping sensitivities in the same order of magnitude.
-global maxM2 = 0.0
-global maxM3 = 0.0
+# TODO: Define all the variables that might be important.
+
+W               = 0.0 # Aircraft Weight
+S               = 0.0 # Wing Area
+CD0             = 0.0 # Zero Lift Drag Coeff of Aircraft
+eta             = 0.0 # Total Propulsive Efficiency
+P               = 0.0 # Available Battery Power
 
 
-#Define all the variables that might be important.
-W               = 2.5       # aircraft weight (including battery), kilograms
-S               = 2.5       # aircraft wing area, meters squared
-CD0             = 0.01      # zero-lift parasitic drag coefficient
-lap_distance    = 1000.0    # lap distance, meters, from rules image: (500.0*4.0 + pi*285.0 + pi*200.0)*0.3048
-num_sensors     = 5.0       # number of sensors
-length_sensor   = 0.15      # length of sensors, meters
-weight_sensor   = 0.1       # weight of sensors, kilograms
-M2_laps         = 3         # laps for mission 2
-maxtime         = 10*60     # maximum time for mission 3
-eta             = 0.75      # efficiency of propulsion system (battery, motor, prop)
-batteryC        = 25        # C-rating of battery
-batterycells    = 4         # number of battery cells (assumes single battery)
-batterycapacity = 3         # battery capacity (assumes single battery)
+
+# TODO: Define input array for objective function.
+design_variables= zeros(8)
+W               = design_variables[1] # Aircraft Weight
+S               = design_variables[2] # Wing Area
+CD0             = design_variables[3] # Zero Lift Drag Coeff of Aircraft
+eta             = design_variables[4] # Total Propulsive Efficiency
+P               = design_variables[5] # Available Battery Power
+# Normalization Factors are the last 3 inputs in this example
+design_variables[end-2] = 1.0 # Initialize GM_norm_factor to 1.0
+design_variables[end-1] = 1.0 # Initialize M2_norm_factor to 1.0
+design_variables[end] = 1.0 # Initialize M3_norm_factor to 1.0
 
 
-#Define input array for objective function.
-x0      = zeros(13)
-x0[1]   = W
-x0[2]   = S
-x0[3]   = CD0
-x0[4]   = lap_distance
-x0[5]   = num_sensors
-x0[6]   = length_sensor
-x0[7]   = weight_sensor
-x0[8]   = M2_laps
-x0[9]   = maxtime
-x0[10]  = eta
-x0[11]  = batteryC
-x0[12]  = batterycells
-x0[13]  = batterycapacity
 
-#define range of percentages to do sensitivity study over.
-r = range(-50,stop=50,length=50)
+# Define range of percentages to do objective study over.
+r = range(-50,stop=50,length=50)*1e-2
 
-#number of steps in the range
+# Number of steps in the range
 N = 50 #number of points in ranges
 
-#initialize the objectives.
-obj = zeros(length(x0),N)
-#initialize the objective derivatives.
-dobj = zeros(length(x0),N)
 
-#for each input, loop through a +/- 50% range from the nominal
-#Run once to get maxima for maxM2 and maxM3 globals for denominators.
-for i = 1:length(x0)
-    x0copy = copy(x0)
+# Initialize the objective function outputs array
+obj = zeros(length(design_variables),N)
+# Initialize the objective function derivatives array
+dobj = zeros(length(design_variables),N)
+
+
+### GET NORMALIZATION FACTORS ###
+# For each input (other than normalization factors), loop through defined range (r) from the nominal
+
+# Initialize normalization factors.
+TP = 0.0
+GM_norm_factor = 0.0
+M2_norm_factor = 0.0
+M3_norm_factor = 0.0
+
+# Run once to get maxima (or mean, or whatever you want to normalize by) for mission normalization factors.
+for i = 1:length(design_variables)-3 #(Don't include norm factors)
+
+    # Create a copy of the original design variables so you can isolate each one in turn.
+    design_variablescopy = copy(design_variables)
+
     for j = 1:N
-        x0copy[i] = (1.0 + 1e-2*r[j])*x0[i]
+
+        # Loop through each of the design variables across the defined relative range.
+        design_variablescopy[i] = (1.0 + r[j])*design_variables[i]
+
         #try catch in case you get a combination that doesn't make sense or has a negative square root or something.
         try
+
             #throw away the answer, we don't need it, we're just getting the globals to be the right values.
-            _ = (objective(x0copy)-obj0)/obj0
+            TPtemp, GM_temp, M2_temp, M3_temp = objective(design_variablescopy)
+
+            # Find Maximum normalization values.
+            if TPtemp > TP
+                TP = TPtemp
+                GM_norm_factor = GM_temp
+                M2_norm_factor = M2_temp
+                M3_norm_factor = M3_temp
+            end
+
         catch
+
+            #printl the cases that don't work so you can debug and make adjustments as needed.
             println("i: $i, j: $j")
-        end
-    end
-end
 
-#run again to get actual values for the objectives, normalized by the max M2 and M3 values just found.
-for i = 1:length(x0)
+        end #try/catch
+    end #for range
+end #for number of design variables
 
-    x0copy = copy(x0)
+
+## Put your Normalization Factors in your Design Variables Array:
+# Normalization Factors are the last 3 inputs in this example
+design_variables[end-2] = GM_norm_factor
+design_variables[end-1] = M2_norm_factor
+design_variables[end] = M3_norm_factor
+
+
+
+### GET SENSITIVITIES ###
+
+# Run a second time to get actual values for the objectives, normalized by the max GM, M2, and M3 values just found.
+for i = 1:length(design_variables)-3 #(Don't include norm factors)
+
+    # Same copying as before
+    design_variablescopy = copy(design_variables)
 
     for j = 1:N
 
-        x0copy[i] = (1.0 + 1e-2*r[j])*x0[i]
+        # Same loop over range as before.
+        design_variablescopy[i] = (1.0 + r[j])*design_variables[i]
+
         try
-            obj[i,j] = objective(x0copy)
+
+            # Don't return everything this time.
+            obj[i,j] = objective(design_variablescopy)
+
         catch
+
+            # Set failures to NaN so they don't show up in the plot.
             obj[i,j] = NaN
-        end
-    end
 
-    #spline the outputs.
-    so = Akima(r, obj[i,:])
+        end #try/catch
+    end #for range
 
-    #get the derivatives relative to the percent of input.
+    # Spline the outputs of each design variable range.
+    so = FLOWMath.Akima(r, obj[i,:])
+
+    # Get the derivatives relative to the percent of input.
     for j = 1:N
-        dobj[i,j] = derivative(so,r[j])
+        dobj[i,j] = FLOWMath.derivative(so,r[j])
     end
 
-end
+end # for number of variables
 
-#get the objective value for the nominal case for getting the percent differences later.
-obj0 = objective(x0)
+
+## Calculate the objective value for the nominal case for getting the percent differences later.
+obj0 = objective(design_variables)
+
 
 
 ############################################################################
-#####################        PLOTS TO LOOK AT          #####################
+#####################       INTERMEDIATE PLOTS         #####################
 ############################################################################
 
-#create a vector for the labels, so you know what the following plots are for.
+# TODO: Create a vector for the labels that match your design variables, so you know what the following plots are for.
 labels = [
 "W";
 "S";
 "CD0";
-"lap distance";
-"\\# sensors";
-"sensor length";
-"sensor weight";
-"M2 laps";
-"maxtime";
 "eta";
-"batteryC";
-"batterycells";
-"batterycapacity"]
+"P";]
 
-#plot each variable on it's own plot so you can clearly see its sensitivity.
-for i=1:length(x0)
+# Plot each variable on it's own plot so you can clearly see its sensitivity.
+for i=1:length(design_variables)-3
     figure()
     clf()
     plot(r,(obj[i,:].-obj0)./obj0,label=labels[i])
     legend()
 end
+
+
 
 ############################################################################
 #####################           FINAL PLOTS            #####################
@@ -375,45 +295,55 @@ THEN YOU NEED TO SEE IF ANY ARE THE EXACT SAME (NO NEED TO PLOT LINES ATOP EACHO
 THEN YOU NEED TO PICK WHICH ONES YOU WANT ON THE FINAL PLOT
 =#
 
-#identify the index of the variables you want
-#=
-Note: in this example, all the payload things have the same sensitivities, so we'll put them all together.  Also the wing loading and drag coefficient are the same, so they are together.  It also turns out that weight doesn't matter, so we'll  leave it out.  Furthermore, all the battery and efficiency stuff goes into available power, so we'll combine them under that heading.
-=#
-toplot = [1;3;5;10]
-#get the plot labels you want to show for those variables
-toplotlabels = ["Weight";"Wing Area"; "Parasitic Drag"; "Payload"; "Available Power"]
-#pick your colors
+# TODO: identify the index of the variables you want
+toplot = [1;2;3;4;5]
+
+# Get the plot labels you want to show for those variables
+toplotlabels = labels[toplot]
+
+# Pick your colors
 colors = ["C0";"C1";"C2";"C0";"C1";"C2"]
-#pick your styles.
+
+# Pick your styles.
 styles = ["-";"-";"-";"--";"--";"--"]
 
+# If needed, add a scale factor that helps the plot be more clearly
+scalefactor = 1e3
 
 
-#### PLOT FINAL FIGURE FOR PAPER ####
-#initialize the figure so that it will be about the right size for the paper (4x3 ratio), but also such that the legend doesn't overlap things weird.
+
+#### PLOT FINAL FIGURE FOR REPORTS ####
+# Initialize the figure so that it will be about the right size for the paper (4x3 ratio), but also such that the legend doesn't overlap things weird.
 figure(figsize=(4.5,4.5*3/4))
-clf()
+
 xlabel("Percent Change in Design Variable (from nominal)")
-ylabel("Normalized Change in Score")
-#plot the interesting things.
+ylabel("Normalized Change in Score (x $scalefactor)")
+
+# Plot the interesting things.
 for i=1:length(toplot)
-    plot(r,1e3*(obj[toplot[i],:].-obj0)./obj0,label=toplotlabels[i],linestyle=styles[i],color=colors[i])
+    plot(r*1e2,scalefactor*(obj[toplot[i],:].-obj0)./obj0,label=toplotlabels[i],linestyle=styles[i],color=colors[i])
 end
+
 legend()
+
 #save the figure.
-savefig("figs/sensitivityobj.png",bbox_inches="tight")
+savefig("../figs/sensitivityobj.png",bbox_inches="tight")
+
 
 
 #### MAYBE PLOT THE DERIVATIVES INSTEAD, IF THAT MAKES MORE SENSE ####
 #initialize the figure so that it will be about the right size for the paper (4x3 ratio), but also such that the legend doesn't overlap things weird.
 figure(figsize=(4.5,4.5*3/4))
-clf()
+
 xlabel("Percent Change in Design Variable (from nominal)")
-ylabel("Differential Percent Change in Score (dScore/dx)")
+ylabel("Differential Change in Score (dScore/dx)")
+
 #plot the interesting things.
 for i=1:length(toplot)
-    plot(r,dobj[toplot[i],:],label=toplotlabels[i],linestyle=styles[i],color=colors[i])
+    plot(r*1e2,dobj[toplot[i],:],label=toplotlabels[i],linestyle=styles[i],color=colors[i])
 end
+
 legend()
+
 #save the figure.
-savefig("figs/sensitivitydobj.png",bbox_inches="tight")
+savefig("../figs/sensitivitydobj.png",bbox_inches="tight")
