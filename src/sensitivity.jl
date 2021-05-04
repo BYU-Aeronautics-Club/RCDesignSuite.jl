@@ -107,7 +107,7 @@ function objective(design_variables; return_all=false)
     # TODO: Here is where you set up the inputs for flight mission 2 and call the objective function.
 
 
-
+    # TODO the mission functions output the normalized portion of the score, if there is some additive amount in addition, put that in here.
     M2 = mission2(M2_inputs, M2_norm_factor)
 
 
@@ -115,7 +115,7 @@ function objective(design_variables; return_all=false)
     # TODO: Here is where you set up the inputs for flight mission 3 and call the objective function.
 
 
-
+    # TODO the mission functions output the normalized portion of the score, if there is some additive amount in addition, put that in here.
     M3 = mission3(M3_inputs, M2_norm_factor)
 
 
