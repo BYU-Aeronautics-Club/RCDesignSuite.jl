@@ -98,17 +98,23 @@ function objective(design_variables; return_all=false)
     ### GROUND MISSION ###
     # TODO: Here is where you set up the inputs for the ground mission if you desire.  Note that the function is set up to return 1.0 by default. (assumes perfect score)
 
+
+
     GM = ground_mission()
 
 
     ### FLIGHT MISSION 2 ###
     # TODO: Here is where you set up the inputs for flight mission 2 and call the objective function.
 
+
+
     M2 = mission2(M2_inputs, M2_norm_factor)
 
 
     ### FLIGHT MISSION 3 ###
     # TODO: Here is where you set up the inputs for flight mission 3 and call the objective function.
+
+
 
     M3 = mission3(M3_inputs, M2_norm_factor)
 
