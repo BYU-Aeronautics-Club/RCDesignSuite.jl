@@ -307,7 +307,7 @@ Create and save plots to go into reports.
 - toplot::Array{Int64} : Array of indices for design variables you want included on the final plots.
 """
 function final_plots(obj, obj0, dobj, r, labels, toplot = [1;2;3;4;5];
-                    scalefactor = 1e3, # If needed, add a scale factor that helps the plot be more clearly
+                    scalefactor = 1e3, # If needed, add a scale factor that helps the plot be more clear
                     colors = ["C0";"C1";"C2";"C0";"C1";"C2"], # Pick your colors
                     styles = ["-";"-";"-";"--";"--";"--"],  # Pick your styles.
                     fs = (4.5,4.5*3/4), #figure size
@@ -388,12 +388,11 @@ function run_sensitivity()
     design_variables[end]   = 1.0 # Initialize M3_norm_factor to 1.0
 
 
-
-    # Define range of percentages to do objective study over.
-    r = range(-50,stop=50,length=50)*1e-2
-
     # Number of steps in the range
     N = 50 #number of points in ranges
+
+    # Define range of percentages to do objective study over.
+    r = range(-50,stop=50,length=N)*1e-2
 
 
     # Get objective Values
@@ -414,7 +413,7 @@ function run_sensitivity()
     final_plots(obj, obj0, dobj, r, labels;
             # TODO: identify the index of the variables you want
             toplot = [1;2;3;4;5],
-            scalefactor = 1e3, # If needed, add a scale factor that helps the plot be more clearly
+            scalefactor = 1e3, # If needed, add a scale factor that helps the plot be more clear
             colors = ["C0";"C1";"C2";"C0";"C1";"C2"], # Pick your colors
             styles = ["-";"-";"-";"--";"--";"--"],  # Pick your styles.
             fs = (4.5,4.5*3/4), #figure size
