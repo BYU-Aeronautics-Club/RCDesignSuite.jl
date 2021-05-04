@@ -56,7 +56,7 @@ Calculates score from ground mission based on relavent inputs.
 
 **Inputs:**
 """
-function ground_mission(inputs=0.0, normalization_factor=1.0)
+function ground_mission(inputs=1.0, normalization_factor=1.0)
 
     # TODO: This is where you put the mission 3 function.  Note that the inputs variable is probably an array that you'll want to unpack before using.
 
@@ -96,7 +96,7 @@ function objective(design_variables; return_all=false)
     M3_norm_factor  = design_variables[end] # Flight Mission 3 Normalization Factor
 
     ### GROUND MISSION ###
-    # TODO: Here is where you set up the inputs for the ground mission if you desire.  Note that the function is set up to return zero by default.
+    # TODO: Here is where you set up the inputs for the ground mission if you desire.  Note that the function is set up to return 1.0 by default. (assumes perfect score)
 
     GM = ground_mission()
 
