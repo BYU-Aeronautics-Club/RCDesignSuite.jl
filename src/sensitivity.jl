@@ -143,16 +143,16 @@ P               = 0.0 # Available Battery Power
 
 
 # TODO: Define input array for objective function.
-design_variables= zeros(8)
-W               = design_variables[1] # Aircraft Weight
-S               = design_variables[2] # Wing Area
-CD0             = design_variables[3] # Zero Lift Drag Coeff of Aircraft
-eta             = design_variables[4] # Total Propulsive Efficiency
-P               = design_variables[5] # Available Battery Power
+design_variables        = zeros(8)
+design_variables[1]     = W   # Aircraft Weight
+design_variables[2]     = S   # Wing Area
+design_variables[3]     = CD0 # Zero Lift Drag Coeff of Aircraft
+design_variables[4]     = eta # Total Propulsive Efficiency
+design_variables[5]     = P   # Available Battery Power
 # Normalization Factors are the last 3 inputs in this example
 design_variables[end-2] = 1.0 # Initialize GM_norm_factor to 1.0
 design_variables[end-1] = 1.0 # Initialize M2_norm_factor to 1.0
-design_variables[end] = 1.0 # Initialize M3_norm_factor to 1.0
+design_variables[end]   = 1.0 # Initialize M3_norm_factor to 1.0
 
 
 
