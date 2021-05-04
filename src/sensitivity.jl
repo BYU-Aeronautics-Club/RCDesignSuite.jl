@@ -135,162 +135,153 @@ end
 
 
 ############################################################################
-#####################        objective STUDY         #####################
+#####################        SENSITIVITY STUDY         #####################
 ############################################################################
-
-# TODO: Define all the variables that might be important.
-
-W               = 0.0 # Aircraft Weight
-S               = 0.0 # Wing Area
-CD0             = 0.0 # Zero Lift Drag Coeff of Aircraft
-eta             = 0.0 # Total Propulsive Efficiency
-P               = 0.0 # Available Battery Power
+"""
+"""
+function sensitivity(design_variables,r,N)
 
 
-
-# TODO: Define input array for objective function.
-design_variables        = zeros(8)
-design_variables[1]     = W   # Aircraft Weight
-design_variables[2]     = S   # Wing Area
-design_variables[3]     = CD0 # Zero Lift Drag Coeff of Aircraft
-design_variables[4]     = eta # Total Propulsive Efficiency
-design_variables[5]     = P   # Available Battery Power
-# Normalization Factors are the last 3 inputs in this example
-design_variables[end-2] = 1.0 # Initialize GM_norm_factor to 1.0
-design_variables[end-1] = 1.0 # Initialize M2_norm_factor to 1.0
-design_variables[end]   = 1.0 # Initialize M3_norm_factor to 1.0
+    # Initialize the objective function outputs array
+    obj = zeros(length(design_variables),N)
+    # Initialize the objective function derivatives array
+    dobj = zeros(length(design_variables),N)
 
 
+    ### GET NORMALIZATION FACTORS ###
+    # For each input (other than normalization factors), loop through defined range (r) from the nominal
 
-# Define range of percentages to do objective study over.
-r = range(-50,stop=50,length=50)*1e-2
+    # Initialize normalization factors.
+    GM_norm_factor = 0.0
+    M2_norm_factor = 0.0
+    M3_norm_factor = 0.0
 
-# Number of steps in the range
-N = 50 #number of points in ranges
+    # Run once to get maxima (or mean, or whatever you want to normalize by) for mission normalization factors.
+    for i = 1:length(design_variables)-3 #(Don't include norm factors)
 
+        # Create a copy of the original design variables so you can isolate each one in turn.
+        design_variablescopy = copy(design_variables)
 
-# Initialize the objective function outputs array
-obj = zeros(length(design_variables),N)
-# Initialize the objective function derivatives array
-dobj = zeros(length(design_variables),N)
+        for j = 1:N
 
+            # Loop through each of the design variables across the defined relative range.
+            design_variablescopy[i] = (1.0 + r[j])*design_variables[i]
 
-### GET NORMALIZATION FACTORS ###
-# For each input (other than normalization factors), loop through defined range (r) from the nominal
+            #try catch in case you get a combination that doesn't make sense or has a negative square root or something.
+            try
 
-# Initialize normalization factors.
-GM_norm_factor = 0.0
-M2_norm_factor = 0.0
-M3_norm_factor = 0.0
+                #throw away the total, we don't need it, we're just getting the maximum components for normalization now.
+                _, GM_temp, M2_temp, M3_temp = objective(design_variablescopy)
 
-# Run once to get maxima (or mean, or whatever you want to normalize by) for mission normalization factors.
-for i = 1:length(design_variables)-3 #(Don't include norm factors)
+                # Find Maximum normalization values.
+                if GM_temp > GM_norm_factor
+                    GM_norm_factor = GM_temp
+                end
+                if M2_temp > M2_norm_factor
+                    M2_norm_factor = M2_temp
+                end
+                if M3_temp > M3_norm_factor
+                    M3_norm_factor = M3_temp
+                end
 
-    # Create a copy of the original design variables so you can isolate each one in turn.
-    design_variablescopy = copy(design_variables)
+            catch
 
-    for j = 1:N
+                #printl the cases that don't work so you can debug and make adjustments as needed.
+                println("i: $i, j: $j")
 
-        # Loop through each of the design variables across the defined relative range.
-        design_variablescopy[i] = (1.0 + r[j])*design_variables[i]
-
-        #try catch in case you get a combination that doesn't make sense or has a negative square root or something.
-        try
-
-            #throw away the total, we don't need it, we're just getting the maximum components for normalization now.
-            _, GM_temp, M2_temp, M3_temp = objective(design_variablescopy)
-
-            # Find Maximum normalization values.
-            if GM_temp > GM_norm_factor
-                GM_norm_factor = GM_temp
-            end
-            if M2_temp > M2_norm_factor
-                M2_norm_factor = M2_temp
-            end
-            if M3_temp > M3_norm_factor
-                M3_norm_factor = M3_temp
-            end
-
-        catch
-
-            #printl the cases that don't work so you can debug and make adjustments as needed.
-            println("i: $i, j: $j")
-
-        end #try/catch
-    end #for range
-end #for number of design variables
+            end #try/catch
+        end #for range
+    end #for number of design variables
 
 
-## Put your Normalization Factors in your Design Variables Array:
-# Normalization Factors are the last 3 inputs in this example
-design_variables[end-2] = GM_norm_factor
-design_variables[end-1] = M2_norm_factor
-design_variables[end] = M3_norm_factor
+    ## Put your Normalization Factors in your Design Variables Array:
+    # Normalization Factors are the last 3 inputs in this example
+    design_variables[end-2] = GM_norm_factor
+    design_variables[end-1] = M2_norm_factor
+    design_variables[end] = M3_norm_factor
 
 
 
-### GET SENSITIVITIES ###
+    ### GET SENSITIVITIES ###
 
-# Run a second time to get actual values for the objectives, normalized by the max GM, M2, and M3 values just found.
-for i = 1:length(design_variables)-3 #(Don't include norm factors)
+    # Run a second time to get actual values for the objectives, normalized by the max GM, M2, and M3 values just found.
+    for i = 1:length(design_variables)-3 #(Don't include norm factors)
 
-    # Same copying as before
-    design_variablescopy = copy(design_variables)
+        # Same copying as before
+        design_variablescopy = copy(design_variables)
 
-    for j = 1:N
+        for j = 1:N
 
-        # Same loop over range as before.
-        design_variablescopy[i] = (1.0 + r[j])*design_variables[i]
+            # Same loop over range as before.
+            design_variablescopy[i] = (1.0 + r[j])*design_variables[i]
 
-        try
+            try
 
-            # Don't return everything this time.
-            obj[i,j] = objective(design_variablescopy)
+                # Don't return everything this time.
+                obj[i,j] = objective(design_variablescopy)
 
-        catch
+            catch
 
-            # Set failures to NaN so they don't show up in the plot.
-            obj[i,j] = NaN
+                # Set failures to NaN so they don't show up in the plot.
+                obj[i,j] = NaN
 
-        end #try/catch
-    end #for range
+            end #try/catch
+        end #for range
 
-    # Spline the outputs of each design variable range.
-    so = FLOWMath.Akima(r, obj[i,:])
+        # Spline the outputs of each design variable range.
+        so = FLOWMath.Akima(r, obj[i,:])
 
-    # Get the derivatives relative to the percent of input.
-    for j = 1:N
-        dobj[i,j] = FLOWMath.derivative(so,r[j])
-    end
+        # Get the derivatives relative to the percent of input.
+        for j = 1:N
+            dobj[i,j] = FLOWMath.derivative(so,r[j])
+        end
 
-end # for number of variables
+    end # for number of variables
 
 
-## Calculate the objective value for the nominal case for getting the percent differences later.
-obj0 = objective(design_variables)
+    ## Calculate the objective value for the nominal case for getting the percent differences later.
+    obj0 = objective(design_variables)
+
+
+    ## Return the
+    return obj, obj0, dobj
+
+end
 
 
 
 ############################################################################
 #####################       INTERMEDIATE PLOTS         #####################
 ############################################################################
+"""
+    intermediate_plots(design_varibles, obj, obj0, dobj; labels)
 
-# TODO: Create a vector for the labels that match your design variables, so you know what the following plots are for.
-labels = [
-"W";
-"S";
-"CD0";
-"eta";
-"P";]
+Create and save plots to go into reports.
 
-# Plot each variable on it's own plot so you can clearly see its sensitivity.
-for i=1:length(design_variables)-3
-    figure()
-    clf()
-    plot(r,(obj[i,:].-obj0)./obj0,label=labels[i])
-    legend()
+**Inputs:**
+- nvar::Int64 : Length of Design Variable array.
+- obj::Array : Array of output objectives from looping over objective function.
+- obj0::Float64 : Objective value for nominal case.
+- dobj::Array : Array of dobj/dx for each design variable.
+- lables::Array{String} : Array of design variable names.
+"""
+function intermediate_plots(nvar, obj, obj0, dobj;
+                        labels = [
+                                "W";
+                                "S";
+                                "CD0";
+                                "eta";
+                                "P";])
+
+    # Plot each variable on it's own plot so you can clearly see its sensitivity.
+    for i=1:nvar-3
+        figure()
+        clf()
+        plot(r,(obj[i,:].-obj0)./obj0,label=labels[i])
+        legend()
+    end
+
 end
-
 
 
 ############################################################################
@@ -302,56 +293,131 @@ HERE YOU NEED TO FIRST LOOK AT ALL THE INDIVIDUAL PLOTS AND SEE WHICH ONES AFFEC
 THEN YOU NEED TO SEE IF ANY ARE THE EXACT SAME (NO NEED TO PLOT LINES ATOP EACHOTHER)
 THEN YOU NEED TO PICK WHICH ONES YOU WANT ON THE FINAL PLOT
 =#
+"""
+    final_plots(obj, obj0, dobj, r, labels)
 
-# TODO: identify the index of the variables you want
-toplot = [1;2;3;4;5]
+Create and save plots to go into reports.
 
-# Get the plot labels you want to show for those variables
-toplotlabels = labels[toplot]
+**Inputs:**
+- obj::Array : Array of output objectives from looping over objective function.
+- obj0::Float64 : Objective value for nominal case.
+- dobj::Array : Array of dobj/dx for each design variable.
+- r::Array : range of variation of design variables.
+- lables::Array{String} : Array of design variable names.
+- toplot::Array{Int64} : Array of indices for design variables you want included on the final plots.
+"""
+function final_plots(obj, obj0, dobj, r, labels, toplot = [1;2;3;4;5];
+                    scalefactor = 1e3, # If needed, add a scale factor that helps the plot be more clearly
+                    colors = ["C0";"C1";"C2";"C0";"C1";"C2"], # Pick your colors
+                    styles = ["-";"-";"-";"--";"--";"--"],  # Pick your styles.
+                    fs = (4.5,4.5*3/4), #figure size
+                    save_path = "../figs/", #save path
+                    )
 
-# Pick your colors
-colors = ["C0";"C1";"C2";"C0";"C1";"C2"]
 
-# Pick your styles.
-styles = ["-";"-";"-";"--";"--";"--"]
-
-# If needed, add a scale factor that helps the plot be more clearly
-scalefactor = 1e3
+    # Get the plot labels you want to show for those variables
+    toplotlabels = labels[toplot]
 
 
+    #### PLOT FINAL FIGURE FOR REPORTS ####
+    # Initialize the figure so that it will be about the right size for the paper (4x3 ratio), but also such that the legend doesn't overlap things weird.
+    figure(figsize=fs)
 
-#### PLOT FINAL FIGURE FOR REPORTS ####
-# Initialize the figure so that it will be about the right size for the paper (4x3 ratio), but also such that the legend doesn't overlap things weird.
-figure(figsize=(4.5,4.5*3/4))
+    xlabel("Percent Change in Design Variable (from nominal)")
+    ylabel("Normalized Change in Score (x $scalefactor)")
 
-xlabel("Percent Change in Design Variable (from nominal)")
-ylabel("Normalized Change in Score (x $scalefactor)")
+    # Plot the interesting things.
+    for i=1:length(toplot)
+        plot(r*1e2,scalefactor*(obj[toplot[i],:].-obj0)./obj0,label=toplotlabels[i],linestyle=styles[i],color=colors[i])
+    end
 
-# Plot the interesting things.
-for i=1:length(toplot)
-    plot(r*1e2,scalefactor*(obj[toplot[i],:].-obj0)./obj0,label=toplotlabels[i],linestyle=styles[i],color=colors[i])
+    legend()
+
+    #save the figure.
+    savefig(save_path*"sensitivityobj.png",bbox_inches="tight")
+
+
+
+    #### MAYBE PLOT THE DERIVATIVES INSTEAD, IF THAT MAKES MORE SENSE ####
+    #initialize the figure so that it will be about the right size for the paper (4x3 ratio), but also such that the legend doesn't overlap things weird.
+    figure(figsize=(4.5,4.5*3/4))
+
+    xlabel("Percent Change in Design Variable (from nominal)")
+    ylabel("Differential Change in Score (dScore/dx)")
+
+    #plot the interesting things.
+    for i=1:length(toplot)
+        plot(r*1e2,dobj[toplot[i],:],label=toplotlabels[i],linestyle=styles[i],color=colors[i])
+    end
+
+    legend()
+
+    #save the figure.
+    savefig(save_path*"sensitivitydobj.png",bbox_inches="tight")
+
 end
 
-legend()
 
-#save the figure.
-savefig("../figs/sensitivityobj.png",bbox_inches="tight")
+"""
+    run_sensitivity()
+
+This is where you put all your setup of variables, call functions, etc.
+"""
+function run_sensitivity()
+
+    # TODO: Define all the variables that might be important.
+
+    W               = 0.0 # Aircraft Weight
+    S               = 0.0 # Wing Area
+    CD0             = 0.0 # Zero Lift Drag Coeff of Aircraft
+    eta             = 0.0 # Total Propulsive Efficiency
+    P               = 0.0 # Available Battery Power
 
 
 
-#### MAYBE PLOT THE DERIVATIVES INSTEAD, IF THAT MAKES MORE SENSE ####
-#initialize the figure so that it will be about the right size for the paper (4x3 ratio), but also such that the legend doesn't overlap things weird.
-figure(figsize=(4.5,4.5*3/4))
+    # TODO: Define input array for objective function.
+    design_variables        = zeros(8)
+    design_variables[1]     = W   # Aircraft Weight
+    design_variables[2]     = S   # Wing Area
+    design_variables[3]     = CD0 # Zero Lift Drag Coeff of Aircraft
+    design_variables[4]     = eta # Total Propulsive Efficiency
+    design_variables[5]     = P   # Available Battery Power
+    # Normalization Factors are the last 3 inputs in this example
+    design_variables[end-2] = 1.0 # Initialize GM_norm_factor to 1.0
+    design_variables[end-1] = 1.0 # Initialize M2_norm_factor to 1.0
+    design_variables[end]   = 1.0 # Initialize M3_norm_factor to 1.0
 
-xlabel("Percent Change in Design Variable (from nominal)")
-ylabel("Differential Change in Score (dScore/dx)")
 
-#plot the interesting things.
-for i=1:length(toplot)
-    plot(r*1e2,dobj[toplot[i],:],label=toplotlabels[i],linestyle=styles[i],color=colors[i])
+
+    # Define range of percentages to do objective study over.
+    r = range(-50,stop=50,length=50)*1e-2
+
+    # Number of steps in the range
+    N = 50 #number of points in ranges
+
+
+    # Get objective Values
+    obj, obj0, dobj = sensitivity(design_variables,r,N)
+
+
+    ## Plot Sensitivities Separately
+    intermediate_plots(design_varibles, obj, obj0, dobj;
+    labels = [# TODO: Create a vector for the labels that match your design variables, so you know what the following plots are for.
+            "W";
+            "S";
+            "CD0";
+            "eta";
+            "P";])
+
+
+    ## Create Final Plots for Reports
+    final_plots(obj, obj0, dobj, r, labels;
+            # TODO: identify the index of the variables you want
+            toplot = [1;2;3;4;5],
+            scalefactor = 1e3, # If needed, add a scale factor that helps the plot be more clearly
+            colors = ["C0";"C1";"C2";"C0";"C1";"C2"], # Pick your colors
+            styles = ["-";"-";"-";"--";"--";"--"],  # Pick your styles.
+            fs = (4.5,4.5*3/4), #figure size
+            save_path = "../figs/", #save path
+            )
 end
-
-legend()
-
-#save the figure.
-savefig("../figs/sensitivitydobj.png",bbox_inches="tight")
