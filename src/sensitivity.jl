@@ -179,7 +179,6 @@ dobj = zeros(length(design_variables),N)
 # For each input (other than normalization factors), loop through defined range (r) from the nominal
 
 # Initialize normalization factors.
-TP = 0.0
 GM_norm_factor = 0.0
 M2_norm_factor = 0.0
 M3_norm_factor = 0.0
@@ -198,14 +197,17 @@ for i = 1:length(design_variables)-3 #(Don't include norm factors)
         #try catch in case you get a combination that doesn't make sense or has a negative square root or something.
         try
 
-            #throw away the answer, we don't need it, we're just getting the globals to be the right values.
-            TPtemp, GM_temp, M2_temp, M3_temp = objective(design_variablescopy)
+            #throw away the total, we don't need it, we're just getting the maximum components for normalization now.
+            _, GM_temp, M2_temp, M3_temp = objective(design_variablescopy)
 
             # Find Maximum normalization values.
-            if TPtemp > TP
-                TP = TPtemp
+            if GM_temp > GM_norm_factor
                 GM_norm_factor = GM_temp
+            end
+            if M2_temp > M2_norm_factor
                 M2_norm_factor = M2_temp
+            end
+            if M3_temp > M3_norm_factor
                 M3_norm_factor = M3_temp
             end
 
