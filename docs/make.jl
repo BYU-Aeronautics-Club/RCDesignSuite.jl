@@ -8,7 +8,10 @@ makedocs(
     format      = Documenter.HTML(),
     pages       = [
         "Intro"             => "index.md",
-        "Quick Start"       => "tutorial.md",
+        "Quick Start"       => Any[
+            "Sensitivity Study" => "tutorials/sensitivity.md",
+            "Initial Sizing" => "tutorials/initialsizing.md",
+            ],
         "Guided Examples"   => "howto.md",
         "API Reference"     => "reference.md",
         "Theory"            => "theory.md"
