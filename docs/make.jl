@@ -1,6 +1,7 @@
 using Documenter, RCDesignSuite
 
 
+
 makedocs(
     modules     = [RCDesignSuite],
     sitename    = "RCDesignSuite.jl",
@@ -15,6 +16,7 @@ makedocs(
     repo        = "https://github.com/BYU-Aeronautics-Club/RCDesignSuite.jl/blob/{commit}{path}#L{line}",
     authors     = "Judd Mehr <juddmehr@gmail.com>",
 )
+
 
 
 deploydocs(
