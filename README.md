@@ -1,6 +1,6 @@
 # RCDesignSuite
 
-[![](https://img.shields.io/badge/docs-stable-blue.svg)](https://aeronautics.byu.edu/RCDesignSuite.jl)
+[![](https://img.shields.io/badge/docs-latest-blue.svg)](https://aeronautics.byu.edu/RCDesignSuite.jl/dev/)
 ![](https://github.com/BYU-Aeronautics-Club/RCDesignSuite.jl/workflows/Run%20tests/badge.svg)
 
 
