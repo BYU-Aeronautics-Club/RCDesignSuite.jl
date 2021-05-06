@@ -52,8 +52,7 @@ That leaves us with Flight Missions 2 and 3 as our sensitivity metrics. That is 
 
 As for inputs, our choices are already very basic.  Each of these is comprised of more detailed variables. For example, the weight is a sum of all the component weights, the wing area is a function of span and chord, and the propulsive efficiency is a combination of battery, wire, ESC, motor, and propeller efficiencies.  For the sake of the sensitivity study, if a change in one of the detailed components yields the same change in output as another, then you should probably choose a more general input.  This is precisely why we chose the quantity sensor length times sensor weight rather than each of those separately.
 
-!!! tip
-
+!!! tip "how to know what to include"
     Another way to think about which inputs to include is to look at how they affect the derivative of the function. If they have the same effect, then include them together.
 
 ## Connecting the inputs and the outputs
