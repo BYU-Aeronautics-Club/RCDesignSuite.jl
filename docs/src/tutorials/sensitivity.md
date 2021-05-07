@@ -1,6 +1,6 @@
 # Sensitivity Study
 
-This is a follow-along tutorial for a basic sensitivity study.  You can find the template for this tutorial in the templates directory at the root level of this repository ([here's a link](../../../templates/sensitivity.jl)).
+This is a follow-along tutorial for a basic sensitivity study.  You can find the template for this tutorial in the templates directory at the root level of this repository ([here's a link](https://github.com/BYU-Aeronautics-Club/RCDesignSuite.jl/blob/master/templates/sensitivity.jl)).
 
 
 ## What is a sensitivity study?
@@ -58,4 +58,74 @@ As for inputs, our choices are already very basic.  Each of these is comprised o
 ## Connecting the inputs and the outputs
 
 This is where we arrive at the hard part of the sensitivity study.  In order to connect the inputs and the outputs, we need to create some sort of model.  To do so, we need to decide how simple or complex we want to be and what assumptions we are willing to make.  For the sake of this example, we are going to make some big assumptions and keep things quite simple.
+
+### The Objective Function
+
+We're going to start with a function we'll call ```objective```. Why? Mostly because how we have chosen to set things up in this example resembles an optimization problem, and that's a common name for this kind of function.  This is the function that takes in the basic inputs and outputs the overall "objective," which is the sum of the mission scores in our case.
+
+```
+function objective(design_variables)
+
+    # Do some stuff
+
+    return M2 + M3
+
+end
+```
+
+But what do we put in the middle?  How do we get from inputs to outputs?  There are a lot of options, but let's try the following:
+
+```@example
+import RCDesignSuite; rcds = RCDesignSuite;
+
+function objective(design_variables; return_all=false)
+
+    ### STEP 1: UNPACK DESIGN VARIABLES ###
+    # Here is where you unpack the relevant design variables.
+    W               = design_variables[1] # Aircraft Weight
+    S               = design_variables[2] # Wing Area
+    CD0             = design_variables[3] # Zero Lift Drag Coeff of Aircraft
+    eta             = design_variables[4] # Total Propulsive Efficiency
+    P               = design_variables[5] # Available Battery Power
+    ncon            = design_variables[6] # Number of Containers
+    slxsw           = design_variables[7] # Length x weight of sensor
+    # Normalization Factors are the last 2 inputs in this example
+    M2_norm_factor  = design_variables[end-1] # Flight Mission 2 Normalization Factor
+    M3_norm_factor  = design_variables[end] # Flight Mission 3 Normalization Factor
+
+
+
+    ### STEP 2a: CALCULATE FLIGHT MISSION 2 SCORE ###
+    # Here is where you set up the inputs for flight mission 2
+
+
+    # Call the mission2() function here (to be defined below)
+    M2 = mission2(M2_inputs, M2_norm_factor)
+
+
+    ### STEP 2b: CALCUALATE FLIGHT MISSION 3 SCORE ###
+    # Here is where you set up the inputs for flight mission 3
+
+
+    # Call the mission3() function here (to be defined below)
+    M3 = mission3(M3_inputs, M2_norm_factor)
+
+
+
+    ### STEP 3: SUM UP OBJECTIVES ###
+
+    # Sum them up
+    totalpoints = M2 + M3
+
+    # Return the outputs (sometimes we might want to see them individually)
+    if return_all
+        return totalpoints, M2, M3
+    else
+        return totalpoints
+    end
+
+end
+```
+
+You'll notice that we still need to define some auxiliary functions, ```mission2()``` and ```mission3()```.  We could have just put everything in one function, but it's already a little messy, so we'll break it up into bite-sized chunks.
 
