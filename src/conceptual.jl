@@ -13,10 +13,10 @@ Conceptual Design functions
 ############################
 
 """
-eqn 7.21 in 415 book
+eqn 7.21 in 415 book (need to fill out docstring)
 """
-function endurancetime()
-
+function endurance_time(eb, eta, L, mb, g, Vinf, D, mto)
+    return (eb*eta*L*mb)/(g*Vinf*D*mto)
 end
 
 
