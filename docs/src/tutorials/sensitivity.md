@@ -16,7 +16,7 @@ Failure = 0, Success = 1
 
 **Flight Mission 2:**
 $M2 = 1 + [N_{(\#containers/time)}/Max_{(\#containers/time)}]$
-where $Max_{(\#containers/time)}$ is the highest $\#containers/time$ of all competing teams.
+where $Max_{(\#containers/time)}$ is the highest $\#containers/time$ of all competing teams, and time is the time to complete 3 laps.
 
 **Flight Mission 3:**
 $M3 = 2 + [N_{(\#laps \times sensor length \times sensor weight)} / Max_{(\#laps \times sensor length \times sensor weight)}]$
@@ -35,8 +35,9 @@ For the sake of our example here, we'll chose a few design variables (inputs) to
 - Weight, $W$,
 - Wing Area, $S$,
 - Zero Lift Drag Coefficient, $C_{D_0}$,
-- Available Battery Power, $P$, and
-- Total Propulsive Efficiency, $\eta$.
+- Available Battery Energy, $eb$,
+- Total Propulsive Efficiency, $\eta$, and
+- Available Thrust at Propeller, $T$.
 
 Noting some of the specific payload items in the Flight Mission scores, we'll also probably need to include
 - the number of containers, $ncon$, and
@@ -63,7 +64,7 @@ This is where we arrive at the hard part of the sensitivity study.  In order to 
 
 We're going to start with a function we'll call ```objective```. Why? Mostly because how we have chosen to set things up in this example resembles an optimization problem, and that's a common name for this kind of function.  This is the function that takes in the basic inputs and outputs the overall "objective," which is the sum of the mission scores in our case.
 
-```
+```@
 function objective(design_variables)
 
     # Do some stuff
@@ -86,9 +87,10 @@ function objective(design_variables; return_all=false)
     S               = design_variables[2] # Wing Area
     CD0             = design_variables[3] # Zero Lift Drag Coeff of Aircraft
     eta             = design_variables[4] # Total Propulsive Efficiency
-    P               = design_variables[5] # Available Battery Power
-    ncon            = design_variables[6] # Number of Containers
-    slxsw           = design_variables[7] # Length x weight of sensor
+    eb              = design_variables[5] # Available Battery Energy
+    T               = design_variables[6] # Available Thrust at Prop.
+    ncon            = design_variables[7] # Number of Containers
+    slxsw           = design_variables[8] # Length x weight of sensor
     # Normalization Factors are the last 2 inputs in this example
     M2_norm_factor  = design_variables[end-1] # Flight Mission 2 Normalization Factor
     M3_norm_factor  = design_variables[end] # Flight Mission 3 Normalization Factor
@@ -97,7 +99,7 @@ function objective(design_variables; return_all=false)
 
     ### STEP 2a: CALCULATE FLIGHT MISSION 2 SCORE ###
     # Here is where you set up the inputs for flight mission 2
-
+    M2_inputs = design_variables[[1:3;6:7]]
 
     # Call the mission2() function here (to be defined below)
     M2 = mission2(M2_inputs, M2_norm_factor)
@@ -105,7 +107,7 @@ function objective(design_variables; return_all=false)
 
     ### STEP 2b: CALCUALATE FLIGHT MISSION 3 SCORE ###
     # Here is where you set up the inputs for flight mission 3
-
+    M3_inputs = design_variables[[4;5;8]]
 
     # Call the mission3() function here (to be defined below)
     M3 = mission3(M3_inputs, M2_norm_factor)
@@ -128,4 +130,76 @@ end
 ```
 
 You'll notice that we still need to define some auxiliary functions, ```mission2()``` and ```mission3()```.  We could have just put everything in one function, but it's already a little messy, so we'll break it up into bite-sized chunks.
+
+### The Mission Functions
+
+For Flight Mission 2, remember our objective is $1 + [N_{(\#containers/time)}/Max_{(\#containers/time)}]$.  Number of containers is a direct input, and for the sake of this example, we're going to select a lap distance that seems reasonable (with the right models, you could calculate the lap distance).  We're also going to use one of the functions found in RCDesignSuite.jl, namely, ```maxvelocity()``` to find the velocity and then calculate the time to complete the mission.
+
+```@example
+function mission2(M2_inputs, M2_norm_factor, lap_distance=3000)
+
+    W       = M2_inputs[1] # Aircraft Weight
+    S       = M2_inputs[2] # Wing Area
+    CD0     = M2_inputs[3] # Zero Lift Drag Coeff of Aircraft
+    T       = M2_inputs[4] # Available Thrust
+    ncon    = M2_inputs[5] # Number of Containers
+
+    # Get Velocity
+    V = rcds.maxvelocity(T, W, S, CD0)
+
+    # Calculate Time
+    time = 3*lap_distance/V
+
+    # Return M2 Score
+    return 1 + (ncon/time) / M2_norm_factor
+
+end
+```
+
+For Flight Mission 3, the metric is $2 + [N_{(\#laps \times sensor length \times sensor weight)} / Max_{(\#laps \times sensor length \times sensor weight)}]$.  So we'll calculate the total number of laps using the ```endurance_time()``` function. Note that we are just making up some of the inputs for the endurance function for simplicity of this example.
+
+!!! note "Note"
+    Several of the inputs to the ```endurance_time()``` function could have been included as full design variables, but we're takeing some liberties here to keep things simple.
+
+
+```@example
+function mission3(M3_inputs, M2_norm_factor, lap_distance=3000)
+
+    eta     = M3_inputs[1] # Total Propulsive Efficiency
+    eb      = M3_inputs[2] # Available Battery Energy
+    slxsw   = M3_inputs[3] # Length x weight of sensor
+
+    # make up L and D to get an L/D of 10, which is reasonable.
+    L = 10
+    D = 1
+
+    g = 9.81 #fact
+
+    # make up a reasonable velocity
+    V = 30 # fast enough to fly, but not win.
+
+    # make up a take off and battery mass that makes sense.
+    mb = 1
+    mto = 4
+
+    # find endurance time
+    time = rcds.endurance_time(eb, eta, L, mb, g, V, D, mto)
+
+    # calculate number of laps
+    distance = V*time
+    nlaps = distance/lap_distance
+
+    # Return M3 score
+    return 2 + (nlaps*slxsw) / M3_norm_factor
+
+end
+```
+
+Now we should have all the functions we need to have a working objective function (remembering that this is NOT a real sensitivity study, and should NOT be used for any sort of competition or design, but rather as a template for how you might put together a real one).
+
+Now we can move on to the actual sensitivity study part of things.
+
+
+
+## Setting up the Sensitivity Study
 
