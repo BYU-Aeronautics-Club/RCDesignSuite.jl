@@ -306,13 +306,15 @@ Create and save plots to go into reports.
 - lables::Array{String} : Array of design variable names.
 - toplot::Array{Int64} : Array of indices for design variables you want included on the final plots.
 """
-function final_plots(obj, obj0, dobj, r, labels, toplot = [1;2;3;4;5];
-                    scalefactor = 1e3, # If needed, add a scale factor that helps the plot be more clear
-                    colors = ["C0";"C1";"C2";"C0";"C1";"C2"], # Pick your colors
-                    styles = ["-";"-";"-";"--";"--";"--"],  # Pick your styles.
-                    fs = (4.5,4.5*3/4), #figure size
-                    save_path = "../figs/", #save path
-                    )
+function final_plots(obj, obj0, dobj, r, labels,;
+            # TODO: identify the index of the variables you want
+            toplot = [1;2;3;4;5],
+            scalefactor = 1e3, # If needed, add a scale factor that helps the plot be more clear
+            colors = ["C0";"C1";"C2";"C0";"C1";"C2"], # Pick your colors
+            styles = ["-";"-";"-";"--";"--";"--"],  # Pick your styles.
+            fs = (4.5,4.5*3/4), #figure size
+            save_path = "../figs/", #save path
+            )
 
 
     # Get the plot labels you want to show for those variables
@@ -410,7 +412,7 @@ function run_sensitivity()
 
 
     ## Create Final Plots for Reports
-    final_plots(obj, obj0, dobj, r, labels;
+    final_plots(obj, obj0, dobj, r, labels,;
             # TODO: identify the index of the variables you want
             toplot = [1;2;3;4;5],
             scalefactor = 1e3, # If needed, add a scale factor that helps the plot be more clear
