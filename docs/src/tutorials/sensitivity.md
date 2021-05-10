@@ -81,6 +81,8 @@ But what do we put in the middle?  How do we get from inputs to outputs?  There 
 
 ```@example
 import RCDesignSuite; rcds = RCDesignSuite;
+import FLOWMath
+using PyPlot
 
 function objective(design_variables; return_all=false)
 
@@ -166,7 +168,7 @@ For Flight Mission 3, the metric is $2 + [N_{(\#laps \times sensor length \times
 
 
 ```@example
-function mission3(M3_inputs, M2_norm_factor, lap_distance=3000)
+function mission3(M3_inputs, M3_norm_factor, lap_distance=3000)
 
     eta     = M3_inputs[1] # Total Propulsive Efficiency
     eb      = M3_inputs[2] # Available Battery Energy
@@ -252,17 +254,28 @@ function run_sensitivity()
 
 
     ## Plot Sensitivities Separately
-    intermediate_plots(design_varibles, obj, obj0, dobj;
-    labels = [# TODO: Create a vector for the labels that match your design variables, so you know what the following plots are for.
-            "W";
-            "S";
-            "CD0";
-            "eta";
-            "P";])
+    intermediate_plots(length(design_variables), r, obj, obj0, dobj;
+    labels = ["W";
+                "S";
+                "CD0";
+                "eta";
+                "eb";
+                "T";
+                "ncon";
+                "slxsw"])
+
 
 
     ## Create Final Plots for Reports
-    final_plots(obj, obj0, dobj, r, labels,;
+    final_plots(obj, obj0, dobj, r;
+            labels = ["W";
+                "S";
+                "CD0";
+                "eta";
+                "eb";
+                "T";
+                "ncon";
+                "slxsw"],
             # TODO: identify the index of the variables you want
             toplot = [1;2;3;4;5],
             scalefactor = 1e3, # If needed, add a scale factor that helps the plot be more clear
@@ -295,7 +308,7 @@ function sensitivity(design_variables,r,N)
     M3_norm_factor = 0.0
 
     # Run once to get maxima (or mean, or whatever you want to normalize by) for mission normalization factors.
-    for i = 1:length(design_variables)-3 #(Don't include norm factors)
+    for i = 1:length(design_variables)-2 #(Don't include norm factors)
 
         # Create a copy of the original design variables so you can isolate each one in turn.
         design_variablescopy = copy(design_variables)
@@ -305,29 +318,16 @@ function sensitivity(design_variables,r,N)
             # Loop through each of the design variables across the defined relative range.
             design_variablescopy[i] = (1.0 + r[j])*design_variables[i]
 
-            #try catch in case you get a combination that doesn't make sense or has a negative square root or something.
-            try
+            _, M2_temp, M3_temp = objective(design_variablescopy,return_all=true)
 
-                #throw away the total, we don't need it, we're just getting the maximum components for normalization now.
-                _, GM_temp, M2_temp, M3_temp = objective(design_variablescopy)
+            # Find Maximum normalization values.
+            if M2_temp > M2_norm_factor
+                M2_norm_factor = M2_temp
+            end
+            if M3_temp > M3_norm_factor
+                M3_norm_factor = M3_temp
+            end
 
-                # Find Maximum normalization values.
-                if GM_temp > GM_norm_factor
-                    GM_norm_factor = GM_temp
-                end
-                if M2_temp > M2_norm_factor
-                    M2_norm_factor = M2_temp
-                end
-                if M3_temp > M3_norm_factor
-                    M3_norm_factor = M3_temp
-                end
-
-            catch
-
-                #printl the cases that don't work so you can debug and make adjustments as needed.
-                println("i: $i, j: $j")
-
-            end #try/catch
         end #for range
     end #for number of design variables
 
@@ -353,17 +353,9 @@ function sensitivity(design_variables,r,N)
             # Same loop over range as before.
             design_variablescopy[i] = (1.0 + r[j])*design_variables[i]
 
-            try
+            # Don't return everything this time.
+            obj[i,j] = objective(design_variablescopy)
 
-                # Don't return everything this time.
-                obj[i,j] = objective(design_variablescopy)
-
-            catch
-
-                # Set failures to NaN so they don't show up in the plot.
-                obj[i,j] = NaN
-
-            end #try/catch
         end #for range
 
         # Spline the outputs of each design variable range.
@@ -390,13 +382,15 @@ end
 And finally, we probably want to first plot everything separately, thus the intermediate plotting function.  This will tell us if we selected the variables wisely and if any end up being identically sensitive.
 
 ```@example
-function intermediate_plots(nvar, obj, obj0, dobj;
-                        labels = [
-                                "W";
-                                "S";
-                                "CD0";
-                                "eta";
-                                "P";])
+function intermediate_plots(nvar, r, obj, obj0, dobj;
+    labels = ["W";
+            "S";
+            "CD0";
+            "eta";
+            "eb";
+            "T";
+            "ncon";
+            "slxsw"])
 
     # Plot each variable on it's own plot so you can clearly see its sensitivity.
     for i=1:nvar-3
@@ -412,15 +406,23 @@ end
 And for the final plot, we'll want everything on the same plot so we can fit it into a design proposal or report.
 
 ```@example
-function final_plots(obj, obj0, dobj, r, labels,;
-            # TODO: identify the index of the variables you want
-            toplot = [1;2;3;4;5],
-            scalefactor = 1e3, # If needed, add a scale factor that helps the plot be more clear
-            colors = ["C0";"C1";"C2";"C0";"C1";"C2"], # Pick your colors
-            styles = ["-";"-";"-";"--";"--";"--"],  # Pick your styles.
-            fs = (4.5,4.5*3/4), #figure size
-            save_path = "../figs/", #save path
-            )
+function final_plots(obj, obj0, dobj, r;
+    labels = ["W";
+            "S";
+            "CD0";
+            "eta";
+            "eb";
+            "T";
+            "ncon";
+            "slxsw"],
+    # TODO: identify the index of the variables you want
+    toplot = [1;2;3;4;5],
+    scalefactor = 1e3, # If needed, add a scale factor that helps the plot be more clear
+    colors = ["C0";"C1";"C2";"C0";"C1";"C2"], # Pick your colors
+    styles = ["-";"-";"-";"--";"--";"--"],  # Pick your styles.
+    fs = (4.5,4.5*3/4), #figure size
+    save_path = "../figs/", #save path
+    )
 
 
     # Get the plot labels you want to show for those variables
@@ -436,7 +438,7 @@ function final_plots(obj, obj0, dobj, r, labels,;
 
     # Plot the interesting things.
     for i=1:length(toplot)
-        plot(r*1e2,scalefactor*(obj[toplot[i],:].-obj0)./obj0,label=toplotlabels[i],linestyle=styles[i],color=colors[i])
+    plot(r.*1e2,scalefactor*(obj[toplot[i],:].-obj0)./obj0,label=toplotlabels[i],linestyle=styles[i],color=colors[i])
     end
 
     legend()
@@ -455,7 +457,7 @@ function final_plots(obj, obj0, dobj, r, labels,;
 
     #plot the interesting things.
     for i=1:length(toplot)
-        plot(r*1e2,dobj[toplot[i],:],label=toplotlabels[i],linestyle=styles[i],color=colors[i])
+    plot(r.*1e2,dobj[toplot[i],:],label=toplotlabels[i],linestyle=styles[i],color=colors[i])
     end
 
     legend()
