@@ -221,8 +221,65 @@ end
 #####    Structures    #####
 ############################
 
-#! See chapter 8 in book
+"""
+    get_root_bending_moment(span,liftforce,liftcentroid)
 
+Calculate root bending moment.
+
+**Inputs:**
+- span::Float64 : Total span of wing.
+- liftforce::Float64 : Total  lift force on wing.
+- liftcentroid::Float64 : point of equivalent point load. default = 4/(3*pi) for elliptic loading
+"""
+function get_root_bending_moment(span,liftforce,liftcentroid=4.0/(3.0*pi))
+    return liftcentroid*span*liftforce/4.0
+end
+
+
+"""
+    get_load_factor(lift,weight)
+
+Calculate load factor, n.
+
+**Inputs:**
+- lift::Float64 : Lift Force
+- weight::Float64 : Weight (in same units as lift)
+"""
+function get_load_factor(L,W)
+    return L/W
+end
+
+
+"""
+    get_equivalent_airspeed(trueairspeed, rho, rhosl)
+
+Calculate equivalent air speed based on true airspeed, air density at flight condition, and sea level air density.
+
+**Inputs:**
+- trueairspeed::Float64 : free stream velocity at flight condition.
+- rho::Float64 : air density at flight condition.
+- rhosl::Float64 : air density at sea level. default = 1.225 kg/m^3
+"""
+function get_equivalent_airspeed(trueairspeed, rho, rhosl=1.225)
+    return trueairspeed*sqrt(rho/rhosl)
+end
+
+
+"""
+get_Vn_stall(equivalentairspeed, referencearea, weight, CLmax, rhosl)
+
+Get load factor value along stall curve for V-n diagram as a function of equivalent airspeed.
+
+**Inputs:**
+- equivalentairspeed::Float64 : Equivalent Air Speed (velocity, i.e. the x-axis value of V-n diagram)
+- referencearea::Float64 : Wing reference area.
+- weight::Float64 : Total weight of aircraft.
+- CLmax::Float64 : Maximum Lift Coeficient of the aircraft. default = 1.2
+- rhosl::Float64 : air density at sea level. default = 1.225 kg/m^3
+"""
+function get_Vn_stall(equivalentairspeed, referencearea, weight, CLmax=1.2, rhosl=1.225)
+    return CLmax*rhosl*equivalentairspeed^2*referencearea/(2*weight)
+end
 
 
 """
