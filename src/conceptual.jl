@@ -244,6 +244,7 @@ function root_bending_moment(span,liftforce,liftcentroid=4.0/(3.0*pi))
 end
 
 
+
 """
     load_factor(lift,weight)
 
@@ -256,6 +257,7 @@ Calculate load factor, n.
 function load_factor(L,W)
     return L/W
 end
+
 
 
 """
@@ -273,6 +275,7 @@ function equivalent_airspeed(trueairspeed, rho, rhosl=1.225)
 end
 
 
+
 """
 Vn_stall(equivalentairspeed, referencearea, weight, CLmax, rhosl)
 
@@ -288,6 +291,7 @@ Get load factor value along stall curve for V-n diagram as a function of equival
 function Vn_stall(equivalentairspeed, referencearea, weight, CLmax=1.2, rhosl=1.225)
     return CLmax*rhosl*equivalentairspeed^2*referencearea/(2*weight)
 end
+
 
 
 """
