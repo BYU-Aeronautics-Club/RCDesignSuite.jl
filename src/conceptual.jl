@@ -81,10 +81,18 @@ end
 ############################
 
 """
-eqn 4.1 in 415 book
-"""
-function vstall()
+    vstall(weight,CLmax,rho,referencearea)
 
+Calculate stall velocity.
+
+**Inputs:**
+- weight::Float64 : Aircraft weight.
+- CLmax::Float64 : Aircraft maximum lift coefficient.
+- rho::Float64 : Air density at flight conditions.
+- referencearea::Float64 : Wing reference area.
+"""
+function vstall(weight,CLmax,rho,referencearea)
+    return sqrt(weight/(CLmax*rho*referencearea))
 end
 
 
@@ -132,7 +140,7 @@ end
 
 
 """
-    get_oswald_factor(einv, CDp, AR, K=0.38)
+    oswald_factor(einv, CDp, AR, K=0.38)
 
 Calculate the Oswald efficiency factor.
 
@@ -142,7 +150,7 @@ Calculate the Oswald efficiency factor.
 - AR::Float64 : wing aspectratio
 - K::Float64 : empirical constant, default=0.38
 """
-function get_oswald_factor(einv, CDp, AR, K=0.38)
+function oswald_factor(einv, CDp, AR, K=0.38)
     return 1 / ( (1/einv) + K*CDp*pi*AR)
 end
 
@@ -157,7 +165,7 @@ Calculate inviscid span efficiency.
 - fd::Float64 : fuselage diameter, in meters
 - b::Float64 : wing span, in meters.
 """
-function get_e(fd, b)
+function e(fd, b)
     return 0.98*(1-2*(fd/b)^2)
 end
 
@@ -181,7 +189,7 @@ Calculate theoretical max battery power.
 - C::Float64 : C-rating of LiPo battery
 - voltage::Float64 : voltage of battery, in volts
 """
-function get_battery_power(capacity, C, voltage)
+function battery_power(capacity, C, voltage)
     return capacity*C*voltage
 end
 
@@ -196,14 +204,14 @@ Calculate available power based on efficiencies.
 - gross_battery_power::Float64 : theoretical max batter power, in Watts
 - eta::Float64 : propulsive efficiency factor for battery, motor, and propeller (default is 0.8 which is the max theoretical, and high for real life)
 """
-function get_available_power(gross_battery_power,eta=0.8)
+function available_power(gross_battery_power,eta=0.8)
     return gross_battery_power * eta
 end
 
 
 
 """
-    get_thrust(P, V)
+    thrust(P, V)
 
 Calculate thrust from available power and velocity.
 
@@ -211,7 +219,7 @@ Calculate thrust from available power and velocity.
 - P::Float64 : power, in watts
 - V::Float64 : velocity, in meters per seconds
 """
-function get_thrust(P, V)
+function thrust(P, V)
     return P/V
 end
 
@@ -222,7 +230,7 @@ end
 ############################
 
 """
-    get_root_bending_moment(span,liftforce,liftcentroid)
+    root_bending_moment(span,liftforce,liftcentroid)
 
 Calculate root bending moment.
 
@@ -231,13 +239,13 @@ Calculate root bending moment.
 - liftforce::Float64 : Total  lift force on wing.
 - liftcentroid::Float64 : point of equivalent point load. default = 4/(3*pi) for elliptic loading
 """
-function get_root_bending_moment(span,liftforce,liftcentroid=4.0/(3.0*pi))
+function root_bending_moment(span,liftforce,liftcentroid=4.0/(3.0*pi))
     return liftcentroid*span*liftforce/4.0
 end
 
 
 """
-    get_load_factor(lift,weight)
+    load_factor(lift,weight)
 
 Calculate load factor, n.
 
@@ -245,13 +253,13 @@ Calculate load factor, n.
 - lift::Float64 : Lift Force
 - weight::Float64 : Weight (in same units as lift)
 """
-function get_load_factor(L,W)
+function load_factor(L,W)
     return L/W
 end
 
 
 """
-    get_equivalent_airspeed(trueairspeed, rho, rhosl)
+    equivalent_airspeed(trueairspeed, rho, rhosl)
 
 Calculate equivalent air speed based on true airspeed, air density at flight condition, and sea level air density.
 
@@ -260,13 +268,13 @@ Calculate equivalent air speed based on true airspeed, air density at flight con
 - rho::Float64 : air density at flight condition.
 - rhosl::Float64 : air density at sea level. default = 1.225 kg/m^3
 """
-function get_equivalent_airspeed(trueairspeed, rho, rhosl=1.225)
+function equivalent_airspeed(trueairspeed, rho, rhosl=1.225)
     return trueairspeed*sqrt(rho/rhosl)
 end
 
 
 """
-get_Vn_stall(equivalentairspeed, referencearea, weight, CLmax, rhosl)
+Vn_stall(equivalentairspeed, referencearea, weight, CLmax, rhosl)
 
 Get load factor value along stall curve for V-n diagram as a function of equivalent airspeed.
 
@@ -277,19 +285,19 @@ Get load factor value along stall curve for V-n diagram as a function of equival
 - CLmax::Float64 : Maximum Lift Coeficient of the aircraft. default = 1.2
 - rhosl::Float64 : air density at sea level. default = 1.225 kg/m^3
 """
-function get_Vn_stall(equivalentairspeed, referencearea, weight, CLmax=1.2, rhosl=1.225)
+function Vn_stall(equivalentairspeed, referencearea, weight, CLmax=1.2, rhosl=1.225)
     return CLmax*rhosl*equivalentairspeed^2*referencearea/(2*weight)
 end
 
 
 """
-    get_weight(weights)
+    weight(weights)
 
 Sums up weights and returns total.
 
 **Inputs:**
 - weight::Array{Float64} : Array of weights
 """
-function get_weight(weights)
+function weight(weights)
     return sum(weights)
 end
