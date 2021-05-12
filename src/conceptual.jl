@@ -2,7 +2,7 @@
 
 Authors: Judd Mehr,
 
-Conceptual Design functions
+Conceptual Design Functions
 
 =#
 
@@ -98,6 +98,27 @@ end
 
 
 """
+    vtaekoff(weight,CLmax,rho,referencearea)
+
+Calculate takeoff velocity.
+
+**Inputs:**
+- weight::Float64 : Aircraft weight.
+- CLmax::Float64 : Aircraft maximum lift coefficient.
+- rho::Float64 : Air density at flight conditions.
+- referencearea::Float64 : Wing reference area.
+"""
+function vtakeoff(weight,CLmax,rho,referencearea)
+    return 1.2*sqrt(weight/(CLmax*rho*referencearea))
+end
+
+"""
+    vtakeoff(vstall)
+
+Calculate takeoff velocity.
+
+**Inputs:**
+- vstall::Float64 : Stall speed.
 """
 function vtakeoff(vstall)
     return 1.2*vstall
