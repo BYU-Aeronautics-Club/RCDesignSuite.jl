@@ -249,6 +249,20 @@ end
 ############################
 #####    Structures    #####
 ############################
+"""
+    turn_lift_force(weight,bankangle)
+
+Calculates the lift force required in a coordinated turn.
+
+**Inputs:**
+- weight::Float64 : Weight of the aircraft.
+- bankangle::Float64 : (radians) bank angle of aircraft.
+"""
+function turn_lift_force(weight,bankangle)
+    return weight/cos(bankangle)
+end
+
+
 
 """
     root_bending_moment(span,liftforce,liftcentroid)
