@@ -312,7 +312,7 @@ end
 
 
 """
-Vn_stall(equivalentairspeed, referencearea, weight, CLmax, rhosl)
+    Vn_stall(equivalentairspeed, referencearea, weight, CLmax, rhosl)
 
 Get load factor value along stall curve for V-n diagram as a function of equivalent airspeed.
 
