@@ -14,9 +14,13 @@ Conceptual Design Functions
 
 """
 eqn 7.21 in 415 book (need to fill out docstring)
+
+**Inputs:**
+
+- LoverD::Float64 : Lift to Drag ratio, L/D.
 """
-function endurance_time(eb, eta, L, mb, g, Vinf, D, mto)
-    return (eb*eta*L*mb)/(g*Vinf*D*mto)
+function endurance_time(eb, eta, LoverD, mb, g, Vinf, mto)
+    return (eb*eta*LoverD*mb)/(g*Vinf*mto)
 end
 
 
@@ -129,9 +133,19 @@ end
 """
 eqn 7.30
 """
-function clopt()
+function clmax_LD()
 
 end
+
+
+
+"""
+eqn 7.48
+"""
+function clmax_endurance(clmaxLD)
+    return sqrt(3)*clmaxLD
+end
+
 
 
 
