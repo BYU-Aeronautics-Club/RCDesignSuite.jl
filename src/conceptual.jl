@@ -28,17 +28,18 @@ end
 """
 eqn 7.52
 """
-function climbrate()
-
+function climbrate(V,T,D,W)          #Inputs, V: Freestream speed, T: Thrust, D: Drag, W: Weight
+       return V*(T-D)/W       
 end
+
 
 
 
 """
 eqn 7.57
 """
-function glideratio()
-
+function glideratio(L,D)             #Inputs, L: Lift, D: Drag
+       return L/D
 end
 
 
@@ -46,8 +47,8 @@ end
 """
 eqn 7.60
 """
-function turnradius()
-
+function turnradius(V,g,ϕ)            #Inputs, V: speed, g: gravity, ϕ: bank angle
+       return (V^2)/(g*tan(ϕ))
 end
 
 
