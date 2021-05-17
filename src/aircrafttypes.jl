@@ -7,7 +7,7 @@ propulsion: the placement and design of the propulsion system
 wieght: total weight of the aircraft
 """
 
-struct myplane
+struct concept
     wing            #Float64 describing the area of the wing in in^2
     tail            #String describing the tail configuration
     propulsion      #String describing placement and design for propulsion system
@@ -15,7 +15,7 @@ struct myplane
 
 end
 
-plane = myplane(350.0,"conventional","front propeller", 1.5)
+aircraft = concept(350.0,"conventional","front propeller", 1.5)
 
 
 
