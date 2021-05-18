@@ -29,7 +29,7 @@ end
 eqn 7.52
 """
 function climbrate(V,T,D,W)          #Inputs, V: Freestream speed, T: Thrust, D: Drag, W: Weight
-       return V*(T-D)/W       
+       return V*(T-D)/W              #Outputs the rate of climb
 end
 
 
@@ -39,7 +39,7 @@ end
 eqn 7.57
 """
 function glideratio(L,D)             #Inputs, L: Lift, D: Drag
-       return L/D
+       return L/D                    #Outputs the glide ratio
 end
 
 
@@ -48,7 +48,7 @@ end
 eqn 7.60
 """
 function turnradius(V,g,ϕ)            #Inputs, V: speed, g: gravity, ϕ: bank angle
-       return (V^2)/(g*tan(ϕ))
+       return (V^2)/(g*tan(ϕ))        #Outputs the turn radius
 end
 
 
@@ -56,8 +56,8 @@ end
 """
 eqn 7.82 (also note potential need for climb phase models)
 """
-function liftoffdistance()
-
+function liftoffdistance(W,ρ,S,Cl,P)    #Inputs W: weight, ρ: density, S: reference area, Cl: maximum lift coefficient, P: net power
+return (W^(5/2))/(P*(ρ*S*Cl)^(3/2))     #Outputs the disrtance required to lift off 
 end
 
 
@@ -65,8 +65,8 @@ end
 """
 eqns 7.87 and 7.91?
 """
-function landingdistance()
-
+function landingdistance(L,D,Vg,Vl,g)    #Inputs L: lift, D: drag, Vg: speed right after glide phase, Vl: speed right before touchdown, g: gravity
+return (L/D)*((Vg^2)-(Vl^2))/(2*g)       #Outputs the distance between the glide phase and the ground phase of landing.
 end
 
 
