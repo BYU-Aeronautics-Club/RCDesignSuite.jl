@@ -1,5 +1,6 @@
 
 """
+Conceptual aircraft type for storing conceptual design details
 
 Inputs
 
