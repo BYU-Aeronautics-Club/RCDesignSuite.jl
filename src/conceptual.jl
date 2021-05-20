@@ -26,38 +26,64 @@ end
 
 
 """
-eqn 7.52
+Function that performs a climb rate calculation using eqn 7.52
+Inputs
+`V::Float64` : Freestream speed
+`T::Float64` : Thrust
+`D::Float64` : Drag
+`W::Float64` : Weight
+
+Outputs the climb rate
 """
-function climbrate(V,T,D,W)          #Inputs, V: Freestream speed, T: Thrust, D: Drag, W: Weight
-       return V*(T-D)/W              #Outputs the rate of climb
+function climbrate(V,T,D,W)
+       return V*(T-D)/W              
 end
 
 
 
 
 """
-eqn 7.57
+Function that performs a glide ratio calculation using eqn 7.57
+Inputs
+`L::Float64` : Lift
+`D::Float64` : Drag
+
+Outputs the glide ratio
 """
-function glideratio(L,D)             #Inputs, L: Lift, D: Drag
-       return L/D                    #Outputs the glide ratio
+function glideratio(L,D)
+       return L/D
 end
 
 
 
 """
-eqn 7.60
+Function that performs a climb rate calculation using eqn 7.60
+Inputs
+`V::Float64` : Freestream speed
+`g::Float64` : Gravity
+`ϕ::Float64` : Bank angle
+
+Outputs the turn radius
 """
-function turnradius(V,g,ϕ)            #Inputs, V: speed, g: gravity, ϕ: bank angle
-       return (V^2)/(g*tan(ϕ))        #Outputs the turn radius
+function turnradius(V,g,ϕ)
+       return (V^2)/(g*tan(ϕ))
 end
 
 
 
 """
-eqn 7.82 (also note potential need for climb phase models)
+Function that performs a climb rate calculation using eqn 7.82
+Inputs
+`W::Float64` : Weight
+`ρ::Float64` : Denisty
+`S::Float64` : Reference area
+`Cl::Float64` : Maximum lift coefficient
+`P::Float64` : Net power
+
+Outputs the turn radius
 """
-function liftoffdistance(W,ρ,S,Cl,P)    #Inputs W: weight, ρ: density, S: reference area, Cl: maximum lift coefficient, P: net power
-return (W^(5/2))/(P*(ρ*S*Cl)^(3/2))     #Outputs the disrtance required to lift off 
+function liftoffdistance(W,ρ,S,Cl,P)
+return (W^(5/2))/(P*(ρ*S*Cl)^(3/2))
 end
 
 
@@ -65,8 +91,8 @@ end
 """
 eqns 7.87 and 7.91?
 """
-function landingdistance(L,D,Vg,Vl,g)    #Inputs L: lift, D: drag, Vg: speed right after glide phase, Vl: speed right before touchdown, g: gravity
-return (L/D)*((Vg^2)-(Vl^2))/(2*g)       #Outputs the distance between the glide phase and the ground phase of landing.
+function landingdistance(L,D,Vg,Vl,g)
+return (L/D)*((Vg^2)-(Vl^2))/(2*g)
 end
 
 
