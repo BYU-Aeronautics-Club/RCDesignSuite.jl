@@ -14,55 +14,69 @@ function setup2021()
 
     # Initial Values
     x0 = [
-        50.0    # Cruise Velocity, feet/second
-        10.0    # number of containers
-        1.0     # sensor length, feet
-        0.125   # individual sensor weight, pounds
-        0.5     # battery mass, pounds
+        25.0/10    # Cruise Velocity, m/s
+        10.0/10    # number of containers
+        0.25    # sensor length, meters
+        0.25    # individual sensor weight, kg
+        1.0     # battery mass, kg
         25.0    # battery C rating
-        21.0    # battery voltage
-        2.5     # wing area
+        21.0/10    # battery voltage
+        0.25    # wing area, m^2
     ]
 
     # Lower Bounds
     lb = [
-        0.0     # Cruise Velocity, feet/second
-        1.0     # number of containers
-        0.01    # sensor length, feet
-        0.01    # individual sensor weight, pounds
+        0.0/10     # Cruise Velocity, feet/second
+        1.0/10     # number of containers
+        0.005   # sensor length, meters
+        0.0     # individual sensor weight, kg
         0.0     # battery mass, pounds
         10.0    # battery C rating
-        3.7     # battery voltage
-        0.0     # wing area
+        3.7/10     # battery voltage
+        0.0     # wing area , m^2
     ]
 
     # Upper Bounds
     ub = [
-        150.0   # Cruise Velocity, feet/second
-        100.0   # number of containers
-        2.0     # sensor length, feet
-        5.0     # individual sensor weight, pounds
-        2.0     # battery mass, pounds
+        100.0/10   # Cruise Velocity, m/s
+        100.0/10   # number of containers
+        1.0     # sensor length, meters
+        1.0     # individual sensor weight, kg
+        1.0     # battery mass, kg
         50.0    # battery C rating
-        34.0    # battery voltage
-        25.0    # wing area
+        34.0/10    # battery voltage
+        25.0    # wing area, m^2
     ]
 
     # Parameter Values
     p = [
-        4000.0  # assumed length of lap, feet
+        1200.0  # assumed length of lap, meters
         1.0     # normalization factor for mission 2
         1.0     # normalization factor for mission 3
+        100.0   # battery specific energy, watt-hours/kg
+        0.6     # propulsive efficiency
+        0.8     # wing CL max
+        1.225   # air density, kg/m^3
+        0.25    # M2 empty weight ratio (ratio of empty weight to total weight)
+        0.75    # M3 empty weight ratio
+        9.81    # gravity acceleration constant
+        10.0    # lift to drag ratio
     ]
 
     # Constraint Values
     c = [
-        600.0   # max time, in seconds, allowed for mission 3 flight.
-        5.0     # max wingspan, feet (projected)
-        55.0    # maximum allowed weight, pounds
-        100.0   # maximum takeoff distance, feet
-        200.0   # maximum battery energy watt-hours
+        10.0   # max time, in minutes, allowed for mission 3 flight.
+        1.524   # max wingspan, meters (projected)
+        25.0    # maximum allowed weight, kg
+        30.0    # maximum takeoff distance, meters
+        200.0   # maximum battery stored power watt-hours
     ]
+
+
+    _, m2, m3 = obj2021(ub, p, c; return_all=true)
+
+    p[2] = m2
+    p[3] = m3
 
     return x0, lb, ub, p, c
 
@@ -70,19 +84,19 @@ end
 
 
 
-function obj2021(x,p, c)
+function obj2021(x, p, c; return_all=false)
 
     ### --- Unpack Variables
     # Unpack applicable design variables
-    cruisevelocity  = x[1] # cruise velocity, feet/sec
-    ncontainers     = x[2] # number of containers
+    cruisevelocity  = x[1]*10 # cruise velocity, feet/sec
+    ncontainers     = x[2]*10 # number of containers
     sensorlength    = x[3] # sensor length
     sensorweight    = x[4] # sensor weight
 
     # Unpack applicable parameters
     laplength       = p[1] # assumed length of lap
-    M2_norm_factor  = p[3] # normalization factor for mission 2
-    M3_norm_factor  = p[4] # normalization factor for mission 3
+    M2_norm_factor  = p[2] # normalization factor for mission 2
+    M3_norm_factor  = p[3] # normalization factor for mission 3
 
     # Unpack applicable constraints
     ttotal          = c[1] # max time allowed for mission 3
@@ -124,6 +138,69 @@ end
 
 
 
-function con2021()
+function con2021(x, p, c)
 
+    ### --- Unpack Variables
+    # Unpack applicable design variables
+    cruisevelocity  = x[1]*10 # cruise velocity, feet/sec
+    ncontainers     = x[2]*10 # number of containers
+    # sensorlength    = x[3] # sensor length
+    sensorweight    = x[4] # sensor weight
+    batteryweight   = x[5] # battery weight
+    batteryC        = x[6] # battery C rating
+    batteryvoltage  = x[7]*10 # battery voltage
+    wingarea        = x[8] # wing area
+
+
+    # Unpack applicable parameters
+    # laplength               = p[1] # assumed length of lap
+    battery_specific_energy = p[4] # battery specific energy
+    eta                     = p[5] # propulsive efficiency
+    CLmax                   = p[6] # Wing CLmax
+    rho                     = p[7] # Air Density
+    emptyweightratio2       = p[8] # aircraft empty weight ratio M2
+    emptyweightratio3       = p[9] # aircraft empty weight ratio M3
+    gravity                 = p[10] # gravity acceleration
+    LoverD                  = p[11] # Lift to Drag ratio
+
+
+    # Unpack applicable constraints
+    ttotal          = c[1] # max time allowed for mission 3
+    # maxwingspan     = c[2] # max allowed wing span
+    maxweight       = c[3] # max allowed total weight
+    maxtakeoffdist  = c[4] # max takeoff distance
+    maxbatteryenergy = c[5] # max allowed battery power
+
+
+
+    ### --- Set up values to be constrained
+
+    ## - Total Stored Battery Power
+    batteryenergy = batteryweight*battery_specific_energy
+    grosspower = battery_power(batteryenergy,batteryC,batteryvoltage)
+
+
+    ## - Weight
+    # Get weight of everything besides battery and payload for each mission.
+    structuralweight2 = (batteryweight+sensorweight*ncontainers)*emptyweightratio2/(1-emptyweightratio2)
+    structuralweight3 = (batteryweight+sensorweight)*emptyweightratio3/(1-emptyweightratio3)
+    # get total weight for missions 2 and 3
+    weight2 = weight([batteryweight;sensorweight*ncontainers;structuralweight2])
+    weight3 = weight([batteryweight;sensorweight;structuralweight3])
+
+    ## - takeoff distance
+    availablepower = available_power(grosspower,eta)
+    takeoffdist = liftoffdistance(weight2,gravity,rho,wingarea,CLmax,availablepower)
+
+
+    ## - Mission 3 endurance
+    endurance = endurance_time(batteryenergy, eta, LoverD, batteryweight, gravity, cruisevelocity, weight3)*60.0 #convert into minutes
+
+    ### --- Organize Constraints
+    con = [
+        (batteryenergy - maxbatteryenergy)/maxbatteryenergy; # stored power
+        (weight2 - maxweight)/maxweight; # allowed weight
+        (takeoffdist - maxtakeoffdist)/maxtakeoffdist; # takeoff distance
+        (ttotal - endurance)/ttotal; # sufficient endurance
+    ]
 end
