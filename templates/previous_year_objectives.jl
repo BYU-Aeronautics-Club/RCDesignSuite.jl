@@ -14,37 +14,37 @@ function setup2021()
 
     # Initial Values
     x0 = [
-        25.0/10    # Cruise Velocity, m/s
-        10.0/10    # number of containers
+        25.0/10.0    # Cruise Velocity, m/s
+        10.0/10.0    # number of containers
         0.25    # sensor length, meters
         0.25    # individual sensor weight, kg
         1.0     # battery mass, kg
-        25.0    # battery C rating
-        21.0/10    # battery voltage
+        25.0/10.0    # battery C rating
+        21.0/10.0    # battery voltage
         0.25    # wing area, m^2
     ]
 
     # Lower Bounds
     lb = [
-        0.0/10     # Cruise Velocity, feet/second
-        1.0/10     # number of containers
+        0.0/10.0     # Cruise Velocity, feet/second
+        1.0/10.0     # number of containers
         0.005   # sensor length, meters
         0.0     # individual sensor weight, kg
         0.0     # battery mass, pounds
-        10.0    # battery C rating
-        3.7/10     # battery voltage
+        10.0/10.0    # battery C rating
+        3.7/10.0     # battery voltage
         0.0     # wing area , m^2
     ]
 
     # Upper Bounds
     ub = [
-        100.0/10   # Cruise Velocity, m/s
-        100.0/10   # number of containers
+        100.0/10.0   # Cruise Velocity, m/s
+        100.0/10.0   # number of containers
         1.0     # sensor length, meters
         1.0     # individual sensor weight, kg
         1.0     # battery mass, kg
-        50.0    # battery C rating
-        34.0/10    # battery voltage
+        50.0/10.0    # battery C rating
+        34.0/10.0    # battery voltage
         25.0    # wing area, m^2
     ]
 
@@ -88,8 +88,8 @@ function obj2021(x, p, c; return_all=false)
 
     ### --- Unpack Variables
     # Unpack applicable design variables
-    cruisevelocity  = x[1]*10 # cruise velocity, feet/sec
-    ncontainers     = x[2]*10 # number of containers
+    cruisevelocity  = x[1]*10.0 # cruise velocity, feet/sec
+    ncontainers     = x[2]*10.0 # number of containers
     sensorlength    = x[3] # sensor length
     sensorweight    = x[4] # sensor weight
 
@@ -142,13 +142,13 @@ function con2021(x, p, c)
 
     ### --- Unpack Variables
     # Unpack applicable design variables
-    cruisevelocity  = x[1]*10 # cruise velocity, feet/sec
-    ncontainers     = x[2]*10 # number of containers
+    cruisevelocity  = x[1]*10.0 # cruise velocity, feet/sec
+    ncontainers     = x[2]*10.0 # number of containers
     # sensorlength    = x[3] # sensor length
     sensorweight    = x[4] # sensor weight
     batteryweight   = x[5] # battery weight
-    batteryC        = x[6] # battery C rating
-    batteryvoltage  = x[7]*10 # battery voltage
+    batteryC        = x[6]*10.0 # battery C rating
+    batteryvoltage  = x[7]*10.0 # battery voltage
     wingarea        = x[8] # wing area
 
 
@@ -169,7 +169,7 @@ function con2021(x, p, c)
     # maxwingspan     = c[2] # max allowed wing span
     maxweight       = c[3] # max allowed total weight
     maxtakeoffdist  = c[4] # max takeoff distance
-    maxbatteryenergy = c[5] # max allowed battery power
+    maxbatterycapacity = c[5] # max allowed battery power
 
 
 
@@ -177,7 +177,9 @@ function con2021(x, p, c)
 
     ## - Total Stored Battery Power
     batteryenergy = batteryweight*battery_specific_energy
-    grosspower = battery_power(batteryenergy,batteryC,batteryvoltage)
+    batterycapacity = batteryenergy/batteryvoltage #amphours
+    grosspower = battery_power(batterycapacity,batteryC,batteryvoltage)
+
 
 
     ## - Weight
@@ -193,14 +195,19 @@ function con2021(x, p, c)
     takeoffdist = liftoffdistance(weight2,gravity,rho,wingarea,CLmax,availablepower)
 
 
+
     ## - Mission 3 endurance
-    endurance = endurance_time(batteryenergy, eta, LoverD, batteryweight, gravity, cruisevelocity, weight3)*60.0 #convert into minutes
+    endurance = endurance_time(battery_specific_energy, eta, LoverD, batteryweight, gravity, cruisevelocity, weight3)*60.0 #convert into minutes
+
+
 
     ### --- Organize Constraints
     con = [
-        (batteryenergy - maxbatteryenergy)/maxbatteryenergy; # stored power
+        (batterycapacity - maxbatterycapacity)/maxbatterycapacity; # stored power
         (weight2 - maxweight)/maxweight; # allowed weight
         (takeoffdist - maxtakeoffdist)/maxtakeoffdist; # takeoff distance
         (ttotal - endurance)/ttotal; # sufficient endurance
     ]
+
+    return con
 end

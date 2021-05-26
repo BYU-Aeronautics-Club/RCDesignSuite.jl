@@ -55,8 +55,8 @@ end
 """
 eqn 7.82 (also note potential need for climb phase models)
 """
-function liftoffdistance()
-
+function liftoffdistance(weight,g,rho,Sref,CLmax,P)
+    1.629*weight^(5/2)/(g*P*(rho*Sref*CLmax)^(3/2))
 end
 
 
