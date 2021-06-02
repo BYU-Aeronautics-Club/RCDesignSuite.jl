@@ -26,7 +26,7 @@ function setup2021()
 
     # Lower Bounds
     lb = [
-        0.0/10.0     # Cruise Velocity, feet/second
+        0.0/10.0     # Cruise Velocity, m/s
         1.0/10.0     # number of containers
         0.005   # sensor length, meters
         0.0     # individual sensor weight, kg
@@ -38,14 +38,14 @@ function setup2021()
 
     # Upper Bounds
     ub = [
-        100.0/10.0   # Cruise Velocity, m/s
+        50.0/10.0   # Cruise Velocity, m/s
         100.0/10.0   # number of containers
         1.0     # sensor length, meters
         1.0     # individual sensor weight, kg
         1.0     # battery mass, kg
         50.0/10.0    # battery C rating
         34.0/10.0    # battery voltage
-        25.0    # wing area, m^2
+        2.0     # wing area, m^2
     ]
 
     # Parameter Values
@@ -57,7 +57,7 @@ function setup2021()
         0.6     # propulsive efficiency
         0.8     # wing CL max
         1.225   # air density, kg/m^3
-        0.25    # M2 empty weight ratio (ratio of empty weight to total weight)
+        0.50    # M2 empty weight ratio (ratio of empty weight to total weight)
         0.75    # M3 empty weight ratio
         9.81    # gravity acceleration constant
         10.0    # lift to drag ratio
@@ -138,7 +138,7 @@ end
 
 
 
-function con2021(x, p, c)
+function con2021!(con, x, p, c)
 
     ### --- Unpack Variables
     # Unpack applicable design variables
@@ -176,9 +176,9 @@ function con2021(x, p, c)
     ### --- Set up values to be constrained
 
     ## - Total Stored Battery Power
-    batteryenergy = batteryweight*battery_specific_energy
-    batterycapacity = batteryenergy/batteryvoltage #amphours
-    grosspower = battery_power(batterycapacity,batteryC,batteryvoltage)
+    battery_watthours = batteryweight*battery_specific_energy #watt-hours
+    batterycapacity = battery_watthours/batteryvoltage #amp-hours
+    grosspower = battery_power(batterycapacity,batteryC,batteryvoltage) #watts
 
 
 
@@ -186,9 +186,12 @@ function con2021(x, p, c)
     # Get weight of everything besides battery and payload for each mission.
     structuralweight2 = (batteryweight+sensorweight*ncontainers)*emptyweightratio2/(1-emptyweightratio2)
     structuralweight3 = (batteryweight+sensorweight)*emptyweightratio3/(1-emptyweightratio3)
+
     # get total weight for missions 2 and 3
     weight2 = weight([batteryweight;sensorweight*ncontainers;structuralweight2])
     weight3 = weight([batteryweight;sensorweight;structuralweight3])
+
+
 
     ## - takeoff distance
     availablepower = available_power(grosspower,eta)
@@ -202,12 +205,8 @@ function con2021(x, p, c)
 
 
     ### --- Organize Constraints
-    con = [
-        (batterycapacity - maxbatterycapacity)/maxbatterycapacity; # stored power
-        (weight2 - maxweight)/maxweight; # allowed weight
-        (takeoffdist - maxtakeoffdist)/maxtakeoffdist; # takeoff distance
-        (ttotal - endurance)/ttotal; # sufficient endurance
-    ]
-
-    return con
+    con[1] = (batterycapacity - maxbatterycapacity)/maxbatterycapacity # stored power
+    con[2] = (weight2 - maxweight)/maxweight # allowed weight
+    con[3] = (takeoffdist - maxtakeoffdist)/maxtakeoffdist # takeoff distance
+    con[4] = (ttotal - endurance)/ttotal # sufficient endurance
 end

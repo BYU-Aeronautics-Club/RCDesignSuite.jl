@@ -12,7 +12,7 @@ Authors: Judd Mehr,
 using SNOW
 using RCDesignSuite
 
-include("templates/previous_year_objectives.jl")
+include("previous_year_objectives.jl")
 
 x0, lx, ux, p, c = setup2021()
 
@@ -20,7 +20,7 @@ function f!(con, x)
 
     J = obj2021(x,p,c)
 
-    con .= con2021(x,p,c)
+    con2021!(con, x, p, c)
 
     return J
 
@@ -33,8 +33,13 @@ options = Options(solver=IPOPT())  # choosing IPOPT solver
 
 xopt, fopt, info = minimize(f!, copy(x0), ng, lx, ux, lg, ug, options)
 
-con2021(xopt,p,c)
+con = zeros(4)
+con2021!(con, xopt,p,c)
+display(con)
 
-println("xstar = ", xopt)
-println("fstar = ", fopt)
-println("info = ", info)
+println("xstar = ")
+display(xopt)
+println("fstar = ")
+display(fopt)
+println("info = ")
+display(info)
