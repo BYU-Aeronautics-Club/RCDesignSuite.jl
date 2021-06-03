@@ -84,8 +84,11 @@ end
 Calculate coordinated turn radius.
 
 **Inputs:**
+
 `V::Float64` : Freestream speed
+
 `g::Float64` : Gravity
+
 `phi::Float64` : Bank angle
 """
 function turnradius(V,g,phi)
