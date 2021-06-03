@@ -19,19 +19,19 @@ Calculate endurance time. (eqn. 7.21)
 
 **Inputs:**
 
-`eb::Float64` :
+`eb::Float64` : battery specific energy
 
-`eta::Float64` :
+`eta::Float64` : propulsive efficiency factor
 
 `LoverD::Float64` : Lift to Drag ratio, L/D.
 
-`mb::Float64` :
+`mb::Float64` : battery mass
 
-`g::Float64` :
+`g::Float64` : gravity
 
-`Vinf::Float64` :
+`Vinf::Float64` : cruise velocity
 
-`mto::Float64` :
+`mto::Float64` : total aircaft mass at takeoff
 """
 function endurance_time(eb, eta, LoverD, mb, g, Vinf, mto)
     return (eb*eta*LoverD*mb)/(g*Vinf*mto)
