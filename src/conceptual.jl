@@ -233,10 +233,20 @@ end
 
 
 """
-eqn 7.30
-"""
-function clmax_LD()
+    clmax_LD(CDp,AR,e)
 
+Calculate lift coefficient for maximum L/D (eqn 7.30)
+
+**Inputs:**
+
+`CDp::Float64` : Parasitic drag coefficient
+
+`AR::Float64` : Aspect ratio
+
+`e::Float64` : Oswald efficiency factor
+"""
+function clmax_LD(CDp,AR,e)
+    return sqrt(CDp*pi*AR*e)
 end
 
 
