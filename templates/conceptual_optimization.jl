@@ -26,14 +26,14 @@ function f!(con, x)
 
 end
 
-ng = 4
+ng = 7
 lg = -Inf*ones(ng)  # lower bounds on constraints
 ug = zeros(ng)  # upper bounds on constraints
 options = Options(solver=IPOPT())  # choosing IPOPT solver
 
 xopt, fopt, info = minimize(f!, copy(x0), ng, lx, ux, lg, ug, options)
 
-con = zeros(4)
+con = zeros(ng)
 con2021!(con, xopt,p,c)
 display(con)
 

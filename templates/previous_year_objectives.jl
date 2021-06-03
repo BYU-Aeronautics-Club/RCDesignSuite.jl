@@ -30,7 +30,7 @@ function setup2021()
         1.0/10.0     # number of containers
         0.005   # sensor length, meters
         0.0     # individual sensor weight, kg
-        0.0     # battery mass, pounds
+        0.0     # battery mass, kg
         10.0/10.0    # battery C rating
         3.7/10.0     # battery voltage
         0.0     # wing area , m^2
@@ -38,9 +38,9 @@ function setup2021()
 
     # Upper Bounds
     ub = [
-        50.0/10.0   # Cruise Velocity, m/s
-        100.0/10.0   # number of containers
-        1.0     # sensor length, meters
+        30.0/10.0   # Cruise Velocity, m/s
+        20.0/10.0   # number of containers
+        0.5     # sensor length, meters
         1.0     # individual sensor weight, kg
         1.0     # battery mass, kg
         50.0/10.0    # battery C rating
@@ -53,7 +53,7 @@ function setup2021()
         1200.0  # assumed length of lap, meters
         1.0     # normalization factor for mission 2
         1.0     # normalization factor for mission 3
-        100.0   # battery specific energy, watt-hours/kg
+        75.0    # battery specific energy, watt-hours/kg
         0.6     # propulsive efficiency
         0.8     # wing CL max
         1.225   # air density, kg/m^3
@@ -61,13 +61,14 @@ function setup2021()
         0.75    # M3 empty weight ratio
         9.81    # gravity acceleration constant
         10.0    # lift to drag ratio
+        0.05    # zero lift drag coefficient
     ]
 
     # Constraint Values
     c = [
         10.0   # max time, in minutes, allowed for mission 3 flight.
         1.524   # max wingspan, meters (projected)
-        25.0    # maximum allowed weight, kg
+        20.0    # maximum allowed weight, kg
         30.0    # maximum takeoff distance, meters
         200.0   # maximum battery stored power watt-hours
     ]
@@ -153,7 +154,7 @@ function con2021!(con, x, p, c)
 
 
     # Unpack applicable parameters
-    # laplength               = p[1] # assumed length of lap
+    laplength               = p[1] # assumed length of lap
     battery_specific_energy = p[4] # battery specific energy
     eta                     = p[5] # propulsive efficiency
     CLmax                   = p[6] # Wing CLmax
@@ -162,6 +163,7 @@ function con2021!(con, x, p, c)
     emptyweightratio3       = p[9] # aircraft empty weight ratio M3
     gravity                 = p[10] # gravity acceleration
     LoverD                  = p[11] # Lift to Drag ratio
+    CD0                     = p[12] # zero lift drag coefficient
 
 
     # Unpack applicable constraints
@@ -195,18 +197,36 @@ function con2021!(con, x, p, c)
 
     ## - takeoff distance
     availablepower = available_power(grosspower,eta)
-    takeoffdist = liftoffdistance(weight2,gravity,rho,wingarea,CLmax,availablepower)
+    takeoffdist = liftoffdistance(weight2,gravity,rho,wingarea,CLmax,availablepower*0.1)
 
 
 
-    ## - Mission 3 endurance
-    endurance = endurance_time(battery_specific_energy, eta, LoverD, batteryweight, gravity, cruisevelocity, weight3)*60.0 #convert into minutes
+    ## - Mission endurance
 
 
+
+    endurance3 = endurance_time(battery_specific_energy*3600, eta, LoverD, batteryweight, gravity, cruisevelocity, weight3)/60.0 * 1.25 #convert into minutes plus 25% safety factor
+
+
+
+    ## - Double Checks
+    # check endurance for mission 2 works
+    tperlap = laplength/cruisevelocity
+    # time for 3 laps on mission 2
+    t2 = 3*tperlap * 2 # times 2 safety factor
+    endurance2 = endurance_time(battery_specific_energy*3600, eta, LoverD, batteryweight, gravity, cruisevelocity, weight2) # in seconds
+
+    # check max velocity and cruise velocity work
+    Ta = available_thrust(availablepower, cruisevelocity)
+    maxvel2 = maxvelocity(Ta, weight2, wingarea, CD0)
+    maxvel3 = maxvelocity(Ta, weight3, wingarea, CD0)
 
     ### --- Organize Constraints
     con[1] = (batterycapacity - maxbatterycapacity)/maxbatterycapacity # stored power
     con[2] = (weight2 - maxweight)/maxweight # allowed weight
     con[3] = (takeoffdist - maxtakeoffdist)/maxtakeoffdist # takeoff distance
-    con[4] = (ttotal - endurance)/ttotal # sufficient endurance
+    con[4] = (ttotal - endurance3)/ttotal # sufficient endurance to last full time in mission 3
+    con[5] = (t2 - endurance2)/t2 # sufficient endurance to accomplish 3 laps in mission 2
+    con[6] = (cruisevelocity - maxvel2)/maxvel2 #cruise velocity less than max for mission 2
+    con[7] = (cruisevelocity - maxvel3)/maxvel3 #cruise velocity less than max for mission 3
 end
