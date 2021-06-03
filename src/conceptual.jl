@@ -26,37 +26,64 @@ end
 
 
 """
-eqn 7.52
-"""
-function climbrate()
+Function that performs a climb rate calculation using eqn 7.52
+Inputs
+`V::Float64` : Freestream speed
+`T::Float64` : Thrust
+`D::Float64` : Drag
+`W::Float64` : Weight
 
+Outputs the climb rate
+"""
+function climbrate(V,T,D,W)
+       return V*(T-D)/W              
+end
+
+
+
+
+"""
+Function that performs a glide ratio calculation using eqn 7.57
+Inputs
+`L::Float64` : Lift
+`D::Float64` : Drag
+
+Outputs the glide ratio
+"""
+function glideratio(L,D)
+       return L/D
 end
 
 
 
 """
-eqn 7.57
-"""
-function glideratio()
+Function that performs a climb rate calculation using eqn 7.60
+Inputs
+`V::Float64` : Freestream speed
+`g::Float64` : Gravity
+`ϕ::Float64` : Bank angle
 
+Outputs the turn radius
+"""
+function turnradius(V,g,ϕ)
+       return (V^2)/(g*tan(ϕ))
 end
 
 
 
 """
-eqn 7.60
+Function that performs a climb rate calculation using eqn 7.82
+Inputs
+`W::Float64` : Weight
+`ρ::Float64` : Denisty
+`S::Float64` : Reference area
+`Cl::Float64` : Maximum lift coefficient
+`P::Float64` : Net power
+
+Outputs the turn radius
 """
-function turnradius()
-
-end
-
-
-
-"""
-eqn 7.82 (also note potential need for climb phase models)
-"""
-function liftoffdistance(weight,g,rho,Sref,CLmax,P)
-    1.629*weight^(5/2)/(g*P*(rho*Sref*CLmax)^(3/2))
+function liftoffdistance(W,ρ,S,Cl,P)
+return (W^(5/2))/(P*(ρ*S*Cl)^(3/2))
 end
 
 
@@ -64,8 +91,8 @@ end
 """
 eqns 7.87 and 7.91?
 """
-function landingdistance()
-
+function landingdistance(L,D,Vg,Vl,g)
+return (L/D)*((Vg^2)-(Vl^2))/(2*g)
 end
 
 
