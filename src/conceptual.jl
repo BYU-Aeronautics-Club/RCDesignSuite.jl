@@ -106,16 +106,16 @@ Calculate distance from stand still to lift off. (eqn 7.81)
 
 `W::Float64` : Weight
 
-`ρ::Float64` : Denisty
+`rho::Float64` : Air density
 
 `S::Float64` : Reference area
 
-`Cl::Float64` : Maximum lift coefficient
+`Clmax::Float64` : Maximum lift coefficient
 
-`P::Float64` : Net power
+`P::Float64` : Net power including drag
 """
-function liftoffdistance(W,ρ,S,Cl,P)
-    return (1.629*W^(5/2))/(P*(ρ*S*Cl)^(3/2))
+function liftoffdistance(W,g,rho,S,Clmax,P)
+    return (1.629*W^(5/2))/(g*P*(rho*S*Clmax)^(3/2))
 end
 
 
