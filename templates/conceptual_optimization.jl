@@ -6,37 +6,40 @@ Authors: Judd Mehr,
 
 =#
 
+#############################################
+##########          SETUP          ##########
+#############################################
+using SNOW
+using RCDesignSuite
 
-### --- Knowns --- ###
+include("previous_year_objectives.jl")
 
-## -- Facts -- ##
-g = 32.17405 # gravity, ft/s^2
+x0, lx, ux, p, c = setup2021()
 
-## -- Constraints -- ##
-M3_max_time = 10.0*60.0 # max time, in seconds, allowed for mission 3 flight.
+function f!(con, x)
 
-wingspan = 5.0 # feet
+    J = obj2021(x,p,c)
 
-maxweight = 55.0 # pounds
+    con2021!(con, x, p, c)
 
-max_takeoff_distance = 100.0 # feet
+    return J
 
-max_turn_radius = 250.0 # feet, please don't turn this wide...
+end
 
-max_battery_energy = 200.0 # watt-hours
+ng = 4
+lg = -Inf*ones(ng)  # lower bounds on constraints
+ug = zeros(ng)  # upper bounds on constraints
+options = Options(solver=IPOPT())  # choosing IPOPT solver
 
+xopt, fopt, info = minimize(f!, copy(x0), ng, lx, ux, lg, ug, options)
 
+con = zeros(4)
+con2021!(con, xopt,p,c)
+display(con)
 
-
-
-
-### --- Assumed Constants --- ###
-battery_specific_energy = 35*2.2 # (watt-hours/kg) * (kg/pound) often called energy density, but this is a misnomer. #! Need to actually weight some typical batteries to estimate a good number here.
-
-max_battery_weight = max_battery_energy/battery_specific_energy
-
-propulsive_efficiency = 0.6 # guess. Never more than 0.8 for sure.
-
-LoverD = 10.0 # lift/drag ratio. 10 = not excellent, but not absolutely terrible.
-
-
+println("xstar = ")
+display(xopt)
+println("fstar = ")
+display(fopt)
+println("info = ")
+display(info)

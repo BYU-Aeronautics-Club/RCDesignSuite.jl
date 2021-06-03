@@ -273,7 +273,7 @@ end
 
 
 """
-    thrust(P, V)
+    available_thrust(P, V)
 
 Calculate thrust from available power and velocity.
 
@@ -281,8 +281,23 @@ Calculate thrust from available power and velocity.
 - P::Float64 : power, in watts
 - V::Float64 : velocity, in meters per seconds
 """
-function thrust(P, V)
+function available_thrust(P, V)
     return P/V
+end
+
+
+"""
+    available_thrust(P, V)
+
+Calculate thrust from available power and velocity.
+
+**Inputs:**
+- P::Float64 : power, in watts
+- V::Float64 : velocity, in meters per seconds
+- eta::Float64 : propulsive efficiency factor for battery, motor, and propeller
+"""
+function available_thrust(P, V, eta)
+    return P*eta/V
 end
 
 
