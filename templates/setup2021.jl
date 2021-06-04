@@ -6,6 +6,7 @@ Authors: Judd Mehr,
 
 =#
 
+using PyPlot, RCDesignSuite
 
 #############################################
 ###########          2021         ###########
@@ -230,3 +231,137 @@ function con2021!(con, x, p, c)
     con[6] = (cruisevelocity - maxvel2)/maxvel2 #cruise velocity less than max for mission 2
     con[7] = (cruisevelocity - maxvel3)/maxvel3 #cruise velocity less than max for mission 3
 end
+
+
+
+
+function sensitivity2021(N=50)
+
+    r = range(0.1,stop=1.9,length=N)
+
+    x0, _, _, p, c = setup2021()
+
+    obj = zeros(length(x0),N)
+    M2 = zeros(length(x0),N)
+    M3 = zeros(length(x0),N)
+
+    maxm2 = 0.0
+    maxm3 = 0.0
+
+    for i=1:length(x0)
+
+        desvar = copy(x0)
+
+        for j=1:N
+
+            desvar[i] = x0[i]*r[j]
+
+            _, M2temp, M3temp = obj2021(desvar, p, c, return_all=true)
+
+            if M2temp > maxm2
+                maxm2 = M2temp
+            end
+            if M3temp > maxm3
+                maxm3 = M3temp
+            end
+
+        end
+
+    end
+
+    p[2] = maxm2
+    p[3] = maxm3
+
+    for i=1:length(x0)
+
+        desvar = copy(x0)
+
+        for j=1:N
+
+            desvar[i] = x0[i]*r[j]
+
+            obj[i,j], M2[i,j], M3[i,j] = obj2021(desvar, p, c, return_all=true)
+
+        end
+
+    end
+
+    obj0, M20, M30 = obj2021(x0, p, c, return_all=true)
+
+    return -obj, M2, M3, -obj0, M20, M30, r
+
+end
+
+function intermediate_plots(r, obj, obj0;
+                        labels = [
+                            "Cruise Velocity";
+                            "number of containers";
+                            "sensor length";
+                            "individual sensor weight";
+                            "battery mass";
+                            "battery C rating";
+                            "battery voltage";
+                            "wing area";])
+
+    # Plot each variable on it's own plot so you can clearly see its sensitivity.
+    for i=1:length(labels)
+    figure()
+    clf()
+    plot(r,(obj[i,:].-obj0)./obj0,label=labels[i])
+    legend()
+    end
+
+end
+
+function final_plots(r, obj, obj0, labels;
+    # TODO: identify the index of the variables you want
+    toplot = [1;2;3;4],
+    scalefactor = 1e3, # If needed, add a scale factor that helps the plot be more clear
+    colors = ["C0";"C1";"C2";"C0";"C1";"C2"], # Pick your colors
+    styles = ["-";"-";"-";"--";"--";"--"],  # Pick your styles.
+    fs = (4.5,4.5*3/4), #figure size
+    save_path = "./", #save path
+    )
+
+    r = r .- 1.0
+
+    # Get the plot labels you want to show for those variables
+    toplotlabels = labels[toplot]
+
+
+    #### PLOT FINAL FIGURE FOR REPORTS ####
+    # Initialize the figure so that it will be about the right size for the paper (4x3 ratio), but also such that the legend doesn't overlap things weird.
+    figure(figsize=fs)
+
+    xlabel("Percent Change in Design Variable (from nominal)")
+    ylabel("Normalized Change in Score (x 1e$(Int(log10(scalefactor))))")
+
+    # Plot the interesting things.
+    for i=1:length(toplot)
+    plot(r*1e2,scalefactor*(obj[toplot[i],:].-obj0)./obj0,label=toplotlabels[i],linestyle=styles[i],color=colors[i])
+    end
+
+    legend()
+
+    #save the figure.
+    savefig(save_path*"sensitivityobj.png",bbox_inches="tight")
+
+
+end
+
+
+obj, M2, M3, obj0, M20, M30, r = sensitivity2021(50)
+
+intermediate_plots(r, obj, obj0)
+
+labels = [
+    "Cruise Velocity";
+    "number of containers";
+    "sensor length";
+    "individual sensor weight";
+    "battery mass";
+    "battery C rating";
+    "battery voltage";
+    "wing area";]
+
+final_plots(r, obj, obj0, labels)
