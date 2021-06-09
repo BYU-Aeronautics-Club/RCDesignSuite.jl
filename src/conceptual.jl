@@ -165,6 +165,155 @@ function landingdistance(Vl,g,mu,W,L,D)
 end
 
 
+"""
+Calculates the sum of the parasitic drag on the fuselage and on the wing
+Inputs
+* `S::Float64` : reference area
+* `v::Float64` : velocity
+* `tc::Float64` : wing thickness to chord ratio - thickness to chord ratio assumed to be about .1
+* `AR::Float64` : aspect ratio assumed to be about 6
+* `fr::Float64` : fineness ratio assumed to be about 4
+* `Λ::Float64` : sweep angle assumed to be about 4 degrees
+* `ρ::Float64` : air density assumed to be 1.225 kg/m^3
+* `μ::Float64` : air viscosity assumed to be 1.81e-5 kg/ms
+"""
+function dragparasitic(S, v; tc = .12, AR = 6, fr = 4, Λ = 4, ρ = 1.225, μ = 1.81e-5)
+    q = .5*ρ*v^2
+    b = sqrt(AR*S)
+    c = S/b
+    return dragwing(q, S, v, c, Λ, tc, ρ, μ) + dragfuselage(q, S, v, c, fr, ρ, μ)
+end
+
+
+function dragwing(q, S, v, c, Λ, tc, ρ, μ)
+    z = 2*cos(Λ)
+    k = 1 + z*(tc) + 100*(tc)^4
+    Re = ρ*v*c/μ
+    Cf = .074/(Re^.2)
+    Swet = 2*(1+.2*(tc))*S
+    Dp = k*Cf*q*Swet
+    return Dp
+end
+
+function dragfuselage(q, S, v, c, fr, ρ, μ)
+    l = S/c
+    k = 1.675 - 0.09*fr+0.003*fr^2
+    if fr >= 15
+        k = 1
+    end
+    Re = ρ*v*l/μ
+    Cf = .074/(Re^.2)
+    S = pi*(l^2/fr)*1.75
+    Dp = k*Cf*q*S
+    return Dp
+end
+
+
+"""
+Calculates the induced drag needed to produce lift
+Inputs
+* `w::Float64` : weight
+* `S::Float64` : reference area
+* `v::Float64` : velocity
+* `ρ::Float64` : air density assumed to be 1.225 kg/m^3
+"""
+function draginduced(w, S, v; ρ = 1.225)
+    q = .5*ρ*v^2
+    CL = w/(q*S)
+    Dp = dragparasitic(S, v)
+    Cp = Dp/(q*S)
+    Ci = .38*Cp*(CL^2)
+    Di = Ci*q*S
+    return Di
+end
+
+"""
+Outputs the induced, parasitic, and total drag of an aircraft
+Inputs
+* A struct of type `concept`
+"""
+function dragdata(a::concept)
+    w = a.weight
+    S = a.area
+    dragtot = []
+    dragpar = []
+    dragin =[]
+    velocity = []
+    vs = range(1, stop = 50, length = 201)
+    for v in vs
+        Dp = dragparasitic(S, v)
+        Di = draginduced(w, S, v)
+        Dt = Dp+Di
+        push!(dragtot, Dt)
+        push!(dragpar, Dp)
+        push!(dragin, Di)
+        push!(velocity, v)
+        v += 1
+    end
+
+    return velocity, dragpar, dragin, dragtot
+end
+
+"""
+Outputs the total drag on an aircraft
+Inputs
+* A struct of type `concept`
+* `v::Float64` : velocity
+"""
+function dragcalculator(a::concept, v)
+    w = a.weight
+    S = a.area
+    Dp = dragparasitic(S, v)
+    Di = draginduced(w, S, v)
+    Dt = Dp+Di
+    return Dt
+end
+
+
+"""
+Calculates the most efficient speed of the aircraft based on drag
+Inputs
+* A struct of type `concept`
+"""
+function designspeed(a::concept)
+    w = a.weight
+    S = a.area
+    vs = range(1, stop = 50, length = 201)
+    Dt = zeros(length(vs))
+    for (i,v) in enumerate(vs)
+        Dp = dragparasitic(S, v)
+        Di = draginduced(w, S, v)
+        Dt[i] = Dp + Di
+    end
+    minimumdrag,iminimumdrag = findmin(Dt)
+    return vs[iminimumdrag]
+
+end
+
+"""
+Calculates the data for lift coefficient with respect to velocity.  Outputs the design lift coefficient based on the design speed
+Inputs
+* A struct of type `concept`
+"""
+function liftcoefficient(a::concept;ρ = 1.225)
+    w = a.weight
+    S = a.area
+    vs = range(1, stop = 50, length = 201)
+    CL = zeros(length(vs))
+    designliftcoeff= 0.0
+    vdesign = designspeed(a)
+    for (i, v) in enumerate(vs)
+        q = .5*ρ*v^2
+        CL[i] = w/(q*S)
+        if v == vdesign
+            designliftcoeff = CL[i]
+        end
+    end
+    println("design lift coefficient is: ", designliftcoeff)
+    return vs, CL, designliftcoeff
+end
+
+
 
 ############################
 #######    Sizing    #######
