@@ -2,7 +2,10 @@
 Conceptual aircraft type for storing conceptual design details
 """
 struct concept
-
+    area
+    tail
+    propulsion
+    weight
 
 end
 
@@ -11,7 +14,6 @@ end
 """
 Preliminary aircraft type for storing prelminary design details
 """
-struct prelim
     struct prelim
         span
         thickness
@@ -24,5 +26,3 @@ struct prelim
         ns                  #number of panels along span, for use with vortex lattice
         nc                  #number of panels along chord
     end
-
-end
