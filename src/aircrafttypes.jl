@@ -2,11 +2,10 @@
 Conceptual aircraft type for storing conceptual design details
 """
 struct concept
-    area
-    tail
-    propulsion
-    weight
-
+    area::Float64           #describes the area of the wing
+    weight::Float64         #total weight of the aircraft
+    tail::String            #describes the design of the tail i.e. "conventional"
+    propulsion::String      #describes the propulsion system of the aircraft
 end
 
 
@@ -15,14 +14,15 @@ end
 Preliminary aircraft type for storing prelminary design details
 """
     struct prelim
-        span
-        thickness
-        chord
-        twist angle
-        dihedral
-        angle of attack
-        sideslip angle
-        bank angle
-        ns                  #number of panels along span, for use with vortex lattice
-        nc                  #number of panels along chord
+        span::Float64
+        thickness::Float64
+        chord::Float64
+        twistangle::Float64
+        dihedral::Float64
+        angleofattack::Float64
+        sweep::Float64
+        aspectratio::Int64
+        taperratio::Float64
+        finenessratio::Float64
+
     end

@@ -14,9 +14,11 @@ export standardizeafs, plotaf, plotpolar, ploteigenvals, plotbasic, plotpropeffi
 #######################
 
 """
+    dragplot(a::concept)
 Plots the induced, parasitic, and total drag with repsect to velocity.
-Inputs
-* A struct of type `concept`
+**Inputs**
+
+A struct of type `concept`
 """
 function dragplot(a::concept)
     S = a.area
@@ -28,9 +30,13 @@ function dragplot(a::concept)
 end
 
 """
+    plotliftcoeff(a::concept)
+
 Plots lift coefficient with repsect to velocity.
-Inputs
-* A struct of type `concept`
+
+**Inputs**
+
+A struct of type `concept`
 """
 function plotliftcoeff(a::concept)
     S = a.area
@@ -942,4 +948,3 @@ end
 function plotVn()
 
 end
-
