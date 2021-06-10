@@ -13,6 +13,101 @@ export addairfoilflaps, saveairfoilpolar, airfoilcomp
 #######    General    ######
 ############################
 
+"""
+    stabilityderivatives(a::concept)
+
+Outputs all stability derivatives using vortex lattice
+
+**Inputs**
+
+A struct of type `prelim`
+`ns::Float64` : number of panels along the span
+`nc::Float64` : number of panels along the chord
+"""
+
+function stabilityderivatives(a::prelim, ns, nc, Vinf)
+# geometry (right half of the wing)
+    xle = [0.0, a.thickness]
+    yle = [0.0, a.span/2]
+    zle = [0.0, 0.0]
+    chord = [a.rootchord, a.tipchord]
+    theta = [a.angleofattack*pi/180, a.twistangle*pi/180]
+    phi = [a.dihedral, a.polyhedral]
+    fc = fill((xc) -> 0, 2) # camberline function for each section
+
+    # discretization parameters
+    spacing_s = Uniform()
+    spacing_c = Uniform()
+
+    # reference parameters
+    Sref = .5*a.span*(chord[1] + chord[2])
+    cref = .5*(chord[1] + chord[2])
+    bref = a.span
+    rref = [a.cg, 0.0, 0.0]
+    ref = Reference(Sref, cref, bref, rref, Vinf)
+
+    # freestream parameters
+    alpha = a.angleofattack*pi/180
+    beta = 0.0
+    Omega = [0.0; 0.0; 0.0]
+    fs = Freestream(Vinf, alpha, beta, Omega)
+
+    # construct surface
+    grid, surface = wing_to_surface_panels(xle, yle, zle, chord, theta, phi, ns, nc;
+        fc = fc, spacing_s=spacing_s, spacing_c=spacing_c)
+
+    # create vector containing all surfaces
+    surfaces = [surface]
+
+    # we can use symmetry since the geometry and flow conditions are symmetric about the X-Z axis
+    symmetric = true
+
+    # perform steady state analysis
+    system = steady_analysis(surfaces, ref, fs; symmetric=symmetric)
+
+    dCF, dCM = stability_derivatives(system)
+
+    CDa, CYa, CLa = dCF.alpha
+    Cla, Cma, Cna = dCM.alpha
+    CDb, CYb, CLb = dCF.beta
+    Clb, Cmb, Cnb = dCM.beta
+    CDp, CYp, CLp = dCF.p
+    Clp, Cmp, Cnp = dCM.p
+    CDq, CYq, CLq = dCF.q
+    Clq, Cmq, Cnq = dCM.q
+    CDr, CYr, CLr = dCF.r
+    Clr, Cmr, Cnr = dCM.r
+
+    println("for α:", alpha)
+    println("CLa:", CLa)
+    println("CLb:", CLb)
+    println("CYa:", CYa)
+    println("CYb:", CYb)
+    println("Cla:", Cla)
+    println("Clb:", Clb)
+    println("Cma:", Cma)
+    println("Cmb:", Cmb)
+    println("Cna:", Cna)
+    println("Cnb:", Cnb)
+    println("CLp:", CLp)
+    println("CLq:", CLq)
+    println("CLr:", CLr)
+    println("CYp:", CYp)
+    println("CYq:", CYq)
+    println("CYr:", CYr)
+    println("Clp:", Clp)
+    println("Clq:", Clq)
+    println("Clr:", Clr)
+    println("Cmp:", Cmp)
+    println("Cmq:", Cmq)
+    println("Cmr:", Cmr)
+    println("Cnp:", Cnp)
+    println("Cnq:", Cnq)
+    println("Cnr:", Cnr)
+
+return dCF, dCM
+end
+
 
 
 ############################

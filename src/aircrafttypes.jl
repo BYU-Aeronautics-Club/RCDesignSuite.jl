@@ -16,13 +16,16 @@ Preliminary aircraft type for storing prelminary design details
     struct prelim
         span::Float64
         thickness::Float64
-        chord::Float64
+        rootchord::Float64
+        tipchord::Float64
         twistangle::Float64
         dihedral::Float64
+        polyhedral::Float64
         angleofattack::Float64
         sweep::Float64
         aspectratio::Int64
         taperratio::Float64
         finenessratio::Float64
+        cg::Float64
 
     end
