@@ -12,7 +12,7 @@ Authors: Judd Mehr,
 using SNOW
 using RCDesignSuite
 
-include("previous_year_objectives.jl")
+include("templates/dbf2021.jl")
 
 x0, lx, ux, p, c = setup2021()
 
