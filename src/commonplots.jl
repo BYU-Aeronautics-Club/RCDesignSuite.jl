@@ -12,6 +12,39 @@ export standardizeafs, plotaf, plotpolar, ploteigenvals, plotbasic, plotpropeffi
 #######################
 ####### General #######
 #######################
+
+"""
+    dragplot(a::concept)
+Plots the induced, parasitic, and total drag with repsect to velocity.
+**Inputs**
+
+A struct of type `concept`
+"""
+function dragplot(a::concept)
+    S = a.area
+    w = a.weight
+    v, Dp, Di, Dt = dragdata(a)
+    plot(v,Dp, label = "Parasitic", xlabel = "Velocity (m/s)", ylabel = "Drag (N)")
+    plot!(v,Di, label = "Induced")
+    plot!(v,Dt, label = "Total")
+end
+
+"""
+    plotliftcoeff(a::concept)
+
+Plots lift coefficient with repsect to velocity.
+
+**Inputs**
+
+A struct of type `concept`
+"""
+function plotliftcoeff(a::concept)
+    S = a.area
+    w = a.weight
+    v, CL, _ = liftcoefficient(a)
+    plot(v,CL, label = "CL", xlabel = "Velocity (m/s)", ylabel = "CL")
+end
+
 """
     readxflrgraphs(filename)
 
@@ -915,4 +948,3 @@ end
 function plotVn()
 
 end
-
