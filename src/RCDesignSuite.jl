@@ -8,6 +8,7 @@ import Xfoil
 using Printf
 
 #include code
+include("aircrafttypes.jl")
 include("commonplots.jl")
 include("conceptual.jl")
 

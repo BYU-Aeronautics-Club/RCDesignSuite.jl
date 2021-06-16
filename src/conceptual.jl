@@ -141,6 +141,8 @@ function landingdistance(L,D,Vg,Vl,g)
     return (L/D)*((Vg^2)-(Vl^2))/(2*g)
 end
 
+
+
 """
     landingdistance(Vl,g,mu,W,L,D)
 
@@ -195,6 +197,7 @@ function dragparasitic(S, v; tc = .12, AR = 6, fr = 4, Λ = 4, ρ = 1.225, μ = 
     return dragwing(q, S, v, c, Λ, tc, ρ, μ) + dragfuselage(q, S, v, c, fr, ρ, μ)
 end
 
+
 """
     dragwing(S, v; tc = .12, AR = 6, fr = 4, Λ = 4, ρ = 1.225, μ = 1.81e-5)
 
@@ -227,6 +230,7 @@ function dragwing(q, S, v, c, Λ, tc, ρ, μ)
     Dp = k*Cf*q*Swet
     return Dp
 end
+
 
 """
     dragfuselage(S, v; tc = .12, AR = 6, fr = 4, Λ = 4, ρ = 1.225, μ = 1.81e-5)
@@ -288,6 +292,7 @@ function draginduced(w, S, v; ρ = 1.225)
     return Di
 end
 
+
 """
     dragdata(a::concept)
 
@@ -318,6 +323,7 @@ function dragdata(a::concept)
 
     return velocity, dragpar, dragin, dragtot
 end
+
 
 """
     dragcalculator(a::concept, v)
@@ -363,6 +369,7 @@ function designspeed(a::concept)
 
 end
 
+
 """
     liftcoefficient(a::concept;ρ = 1.225)
 Calculates the data for lift coefficient with respect to velocity.  Outputs the design lift coefficient based on the design speed
@@ -391,19 +398,27 @@ end
 
 
 
-############################
-#######    Sizing    #######
-############################
+######################################################################
+############################    Sizing    ############################
+######################################################################
 """
 """
-function wingareareq()
+function required_wing_area()
 
 end
 
 
-############################
-####    Aerodynamics    ####
-############################
+"""
+Need a function to estimate fuselage volume
+"""
+function get_fuselage_volume()
+
+end
+
+
+######################################################################
+#########################    Aerodynamics    #########################
+######################################################################
 
 """
     vstall(weight,CLmax,rho,referencearea)
@@ -516,11 +531,15 @@ Calculate maximum velocity.
 """
 function maxvelocity(Ta, W, S, CD0, rho=1.225, K=0.38)
 
-    num = ( (Ta/S) + (W/S)*sqrt((Ta/W)^2 - 4*CD0*K) )
+    if ((Ta/W)^2 - 4*CD0*K) < 0.0
+        return false
+    else
+        num = ( (Ta/S) + (W/S)*sqrt((Ta/W)^2 - 4*CD0*K) )
 
-    den = rho * CD0
+        den = rho * CD0
 
-    return sqrt( num / den )
+        return sqrt( num / den )
+    end
 
 end
 
@@ -564,9 +583,9 @@ end
 
 
 
-############################
-#####    Propulsion    #####
-############################
+#######################################################################
+###########################    Propulsion    ##########################
+#######################################################################
 
 #! See section 7.1.2,  in 415 book for relevant functions
 
@@ -643,9 +662,9 @@ end
 
 
 
-############################
-#####    Structures    #####
-############################
+########################################################################
+###########################    Structures    ###########################
+########################################################################
 """
     turn_lift_force(weight,bankangle)
 
@@ -750,6 +769,80 @@ Sums up weights and returns total.
 
 `weight::Array{Float64}` : Array of weights
 """
-function weight(weights)
+function sumweight(weights)
     return sum(weights)
+end
+
+
+"""
+    wingweight()
+
+Estimates Wing Weight.
+
+**Inputs:**
+
+`wingarea::Float64` : wing area.
+
+**Keyword Arguments:**
+`volume::Float64` : volume
+
+`density::Float64` : density, , default is from lookup table for pink foam in kg/m^3
+
+`foamdatafile::String` : if using, path to foam data file, default = "./data/foamdata_SI.csv",
+
+`foamtype::String` : if using, FoamType to use in lookup table, default = "Foamular250a" (pink foam)
+
+`afthickness::Float64` : airfoil percent thickness, default = 0.14
+
+`span::Float64` : wing span, default = 1.524 m
+"""
+function wingweight(wingarea;
+            volume          = nothing,
+            density         = nothing,
+            foamdatafile    = "./data/foamdata_SI.csv",
+            foamtype        = "Foamular250a",
+            afthickness     = 0.14,
+            span            = 1.524)
+
+    # if density isn't manually input, get it from lookup table.
+    if density == nothing
+
+        foamdata = DataFrames.DataFrame(CSV.File(foamdatafile,header=true,datarow=3))
+
+        foamidx = findall((foamdata.FoamType .== foamtype))
+
+        density = foamdata.rho[foamidx] #kg/m^3
+
+    end
+
+    # if volume isn't manuual input, estimate it based on span and thickness.
+    if volume == nothing
+
+        # get average chord
+        cbar = wingarea/span
+
+        #multiply current thickness by the ratio of area to thickness for NACA 2412
+        afarea = cbar*afthickness*(0.081699375/0.12)
+
+        # multiply airfoil area by wing area
+        wingvolume = afarea*span
+
+    end
+
+    # Return weight
+    return wingvolume*density
+
+end
+
+
+
+"""
+Need Method for coupling wing area and root bending yield stress.
+Probabaly need to have a parameter or variable for airfoil thickness
+Get chord from area and span parameter
+Get actual thickness from chord and thickness parameter/variable
+Calculate bending yield stress as a function of absolute section thickness.
+"""
+function bending_yield_stress()
+
 end

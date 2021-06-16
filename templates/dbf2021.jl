@@ -6,7 +6,7 @@ Authors: Judd Mehr,
 
 =#
 
-using PyPlot, RCDesignSuite
+# using PyPlot, RCDesignSuite
 
 #############################################
 ###########          2021         ###########
@@ -72,6 +72,8 @@ function setup2021()
         20.0    # maximum allowed weight, kg
         30.0    # maximum takeoff distance, meters
         200.0   # maximum battery stored power watt-hours
+        0.10    # maximum  root bending moment (need to find an actaul number here.)
+        20.0    # maximum aspect ratio
     ]
 
 
@@ -168,11 +170,13 @@ function con2021!(con, x, p, c)
 
 
     # Unpack applicable constraints
-    ttotal          = c[1] # max time allowed for mission 3
-    # maxwingspan     = c[2] # max allowed wing span
-    maxweight       = c[3] # max allowed total weight
-    maxtakeoffdist  = c[4] # max takeoff distance
-    maxbatterycapacity = c[5] # max allowed battery power
+    ttotal              = c[1] # max time allowed for mission 3
+    maxwingspan         = c[2] # max allowed wing span
+    maxweight           = c[3] # max allowed total weight
+    maxtakeoffdist      = c[4] # max takeoff distance
+    maxbatterycapacity  = c[5] # max allowed battery power
+    maxbendingmoment    = c[6]
+    maxaspectratio      = c[7]
 
 
 
@@ -181,32 +185,30 @@ function con2021!(con, x, p, c)
     ## - Total Stored Battery Power
     battery_watthours = batteryweight*battery_specific_energy #watt-hours
     batterycapacity = battery_watthours/batteryvoltage #amp-hours
-    grosspower = battery_power(batterycapacity,batteryC,batteryvoltage) #watts
+    grosspower = RCDesignSuite.battery_power(batterycapacity,batteryC,batteryvoltage) #watts
 
 
 
     ## - Weight
     # Get weight of everything besides battery and payload for each mission.
-    structuralweight2 = (batteryweight+sensorweight*ncontainers)*emptyweightratio2/(1-emptyweightratio2)
-    structuralweight3 = (batteryweight+sensorweight)*emptyweightratio3/(1-emptyweightratio3)
+    # structuralweight2 = (batteryweight+sensorweight*ncontainers)*emptyweightratio2/(1-emptyweightratio2)
+    # structuralweight3 = (batteryweight+sensorweight)*emptyweightratio3/(1-emptyweightratio3)
+    wingweight = RCDesignSuite.wingweight(wingarea)
 
     # get total weight for missions 2 and 3
-    weight2 = weight([batteryweight;sensorweight*ncontainers;structuralweight2])
-    weight3 = weight([batteryweight;sensorweight;structuralweight3])
+    weight2 = RCDesignSuite.sumweight([batteryweight;sensorweight*ncontainers;wingweight])
+    weight3 = RCDesignSuite.sumweight([batteryweight;sensorweight;wingweight])
 
 
 
     ## - takeoff distance
-    availablepower = available_power(grosspower,eta)
-    takeoffdist = liftoffdistance(weight2,gravity,rho,wingarea,CLmax,availablepower*0.1)
+    availablepower = RCDesignSuite.available_power(grosspower,eta)
+    takeoffdist = RCDesignSuite.liftoffdistance(weight2,gravity,rho,wingarea,CLmax,availablepower*0.1)
 
 
 
     ## - Mission endurance
-
-
-
-    endurance3 = endurance_time(battery_specific_energy*3600, eta, LoverD, batteryweight, gravity, cruisevelocity, weight3)/60.0 * 1.25 #convert into minutes plus 25% safety factor
+    endurance3 = RCDesignSuite.endurance_time(battery_specific_energy*3600, eta, LoverD, batteryweight, gravity, cruisevelocity, weight3)/60.0 * 1.25 #convert into minutes plus 25% safety factor
 
 
 
@@ -215,21 +217,52 @@ function con2021!(con, x, p, c)
     tperlap = laplength/cruisevelocity
     # time for 3 laps on mission 2
     t2 = 3*tperlap * 2 # times 2 safety factor
-    endurance2 = endurance_time(battery_specific_energy*3600, eta, LoverD, batteryweight, gravity, cruisevelocity, weight2) # in seconds
+    endurance2 = RCDesignSuite.endurance_time(battery_specific_energy*3600, eta, LoverD, batteryweight, gravity, cruisevelocity, weight2) # in seconds
 
     # check max velocity and cruise velocity work
-    Ta = available_thrust(availablepower, cruisevelocity)
-    maxvel2 = maxvelocity(Ta, weight2, wingarea, CD0)
-    maxvel3 = maxvelocity(Ta, weight3, wingarea, CD0)
+    Ta = RCDesignSuite.available_thrust(availablepower, cruisevelocity)
+    maxvel2 = RCDesignSuite.maxvelocity(Ta, weight2, wingarea, CD0)
+    maxvel3 = RCDesignSuite.maxvelocity(Ta, weight3, wingarea, CD0)
+
+    # Root bending moment:
+    bendingmoment = RCDesignSuite.root_bending_moment(maxwingspan,weight2)
 
     ### --- Organize Constraints
-    con[1] = (batterycapacity - maxbatterycapacity)/maxbatterycapacity # stored power
-    con[2] = (weight2 - maxweight)/maxweight # allowed weight
-    con[3] = (takeoffdist - maxtakeoffdist)/maxtakeoffdist # takeoff distance
-    con[4] = (ttotal - endurance3)/ttotal # sufficient endurance to last full time in mission 3
-    con[5] = (t2 - endurance2)/t2 # sufficient endurance to accomplish 3 laps in mission 2
-    con[6] = (cruisevelocity - maxvel2)/maxvel2 #cruise velocity less than max for mission 2
-    con[7] = (cruisevelocity - maxvel3)/maxvel3 #cruise velocity less than max for mission 3
+    # stored power
+    con[1] = (batterycapacity - maxbatterycapacity)/maxbatterycapacity
+
+    # allowed weight
+    con[2] = (weight2 - maxweight)/maxweight
+
+    # takeoff distance
+    con[3] = (takeoffdist - maxtakeoffdist)/maxtakeoffdist
+
+    # sufficient endurance to last full time in mission 3
+    con[4] = (ttotal - endurance3)/ttotal
+
+    # sufficient endurance to accomplish 3 laps in mission 2
+    con[5] = (t2 - endurance2)/t2
+
+    # cruise velocity less than max for mission 2
+    if maxvel2 == false
+        con[6] = 1.0
+    else
+        con[6] = (cruisevelocity - maxvel2)/maxvel2
+    end
+
+    # cruise velocity less than max for mission 3
+    if maxvel3 == false
+        con[7] = 1.0
+    else
+        con[7] = (cruisevelocity - maxvel3)/maxvel3
+    end
+
+
+    # root bending moment can't break wing
+    con[8] = (bendingmoment - maxbendingmoment)/maxbendingmoment
+
+    # Aspect ratio isn't too big (replace with better root bending constraint above.)
+    con[9] = (maxwingspan^2/wingarea - maxaspectratio)/maxaspectratio
 end
 
 

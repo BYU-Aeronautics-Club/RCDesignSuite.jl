@@ -11,8 +11,9 @@ Authors: Judd Mehr,
 #############################################
 using SNOW
 using RCDesignSuite
+using PyPlot
 
-include("templates/dbf2021.jl")
+include("dbf2021.jl")
 
 x0, lx, ux, p, c = setup2021()
 
@@ -26,7 +27,7 @@ function f!(con, x)
 
 end
 
-ng = 7
+ng = 9
 lg = -Inf*ones(ng)  # lower bounds on constraints
 ug = zeros(ng)  # upper bounds on constraints
 options = Options(solver=IPOPT())  # choosing IPOPT solver
