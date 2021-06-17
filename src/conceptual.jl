@@ -188,7 +188,7 @@ Calculates the sum of the parasitic drag on the fuselage and on the wing
 
 `μ::Float64` : air viscosity assumed to be 1.81e-5 kg/ms
 """
-function dragparasitic(S, v; tc = .12, AR = 6, fr = 4, Λ = 4, ρ = 1.225, μ = 1.81e-5)
+function dragparasitic(S, v; tc = .12, AR = 10, fr = 4, Λ = 4, ρ = 1.225, μ = 1.81e-5)
     q = .5*ρ*v^2
     b = sqrt(AR*S)
     c = S/b
@@ -222,8 +222,8 @@ function dragwing(q, S, v, c, Λ, tc, ρ, μ)
     z = 2*cos(Λ)
     k = 1 + z*(tc) + 100*(tc)^4
     Re = ρ*v*c/μ
-    Cf = .074/(Re^.2)
-    Swet = 2*(1+.2*(tc))*S
+    Cf = .074/Re^.2
+    Swet = (1+.2*tc)*S
     Dp = k*Cf*q*Swet
     return Dp
 end
@@ -250,15 +250,15 @@ Calculates the parasitic drag on the fuselage as part of the dragparasitic funct
 `μ::Float64` : air viscosity
 """
 function dragfuselage(q, S, v, c, fr, ρ, μ)
-    l = S/c
+    l = S/c                         #assuming that length is the same as span
     k = 1.675 - 0.09*fr+0.003*fr^2
     if fr >= 15
         k = 1
     end
     Re = ρ*v*l/μ
     Cf = .074/(Re^.2)
-    S = pi*(l^2/fr)*1.75
-    Dp = k*Cf*q*S
+    Swet = pi*(l^2/fr)*1.75
+    Dp = k*Cf*q*Swet
     return Dp
 end
 
@@ -278,15 +278,40 @@ Calculates the induced drag needed to produce lift
 
 `ρ::Float64` : air density assumed to be 1.225 kg/m^3
 """
-function draginduced(w, S, v; ρ = 1.225)
+function draginduced(w, S, v; ρ = 1.225, AR = 10, fr = 4)
     q = .5*ρ*v^2
     CL = w/(q*S)
-    Dp = dragparasitic(S, v)
-    Cp = Dp/(q*S)
-    Ci = .38*Cp*(CL^2)
-    Di = Ci*q*S
+    e = efficiency(S, fr, AR, q, v)
+    CDi = CL^2/(pi*AR*e)
+    Di = CDi*q*S
     return Di
 end
+
+
+"""
+    efficiency(S, fr, AR, q, v)
+
+Calculates the Oswald efficiency factor of an aircraft.  Used for induced drag calculations
+**Inputs**
+
+`S::Float64` : reference area
+
+`fr::Float64` : fineness ratio
+
+`AR::Float64` : Aspect ratio
+
+`v::Float64` : velocity
+"""
+function efficiency(S, fr, AR, q, v)
+    b = sqrt(AR*S)
+    df = b/fr
+    einv = .98(1-2(df/b)^2)
+    Dp = dragparasitic(S, v)
+    CDp = Dp/(q*S)
+    e = 1/(1/einv + .38*CDp*pi*AR)
+    return e
+end
+
 
 """
     dragdata(a::concept)
@@ -388,7 +413,6 @@ function liftcoefficient(a::concept;ρ = 1.225)
     println("design lift coefficient is: ", designliftcoeff)
     return vs, CL, designliftcoeff
 end
-
 
 
 ############################
