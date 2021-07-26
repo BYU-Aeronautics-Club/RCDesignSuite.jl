@@ -188,7 +188,7 @@ Calculates the sum of the parasitic drag on the fuselage and on the wing
 
 `μ::Float64` : air viscosity assumed to be 1.81e-5 kg/ms
 """
-function dragparasitic(S, v; tc = .12, AR = 10, fr = 4, Λ = 4, ρ = 1.225, μ = 1.81e-5)
+function dragparasitic(S, v, tc, AR, fr, Λ, ρ, μ)
     q = .5*ρ*v^2
     b = sqrt(AR*S)
     c = S/b
@@ -278,10 +278,10 @@ Calculates the induced drag needed to produce lift
 
 `ρ::Float64` : air density assumed to be 1.225 kg/m^3
 """
-function draginduced(w, S, v; ρ = 1.225, AR = 10, fr = 4)
+function draginduced(w, S, v, tc, AR, fr, Λ, ρ, μ)
     q = .5*ρ*v^2
     CL = w/(q*S)
-    e = efficiency(S, fr, AR, q, v)
+    e = efficiency(S, fr, AR, q, v, tc, Λ, ρ, μ)
     CDi = CL^2/(pi*AR*e)
     Di = CDi*q*S
     return Di
@@ -302,11 +302,11 @@ Calculates the Oswald efficiency factor of an aircraft.  Used for induced drag c
 
 `v::Float64` : velocity
 """
-function efficiency(S, fr, AR, q, v)
+function efficiency(S, fr, AR, q, v, tc, Λ, ρ, μ)
     b = sqrt(AR*S)
-    df = b/fr
+    df = b/fr       #assuming length is the same as span
     einv = .98(1-2(df/b)^2)
-    Dp = dragparasitic(S, v)
+    Dp = dragparasitic(S, v, tc, AR, fr, Λ, ρ, μ)
     CDp = Dp/(q*S)
     e = 1/(1/einv + .38*CDp*pi*AR)
     return e
@@ -322,7 +322,7 @@ Outputs the induced, parasitic, and total drag of an aircraft with respect to ve
 
 A struct of type `concept`
 """
-function dragdata(a::concept)
+function dragdata(a::concept, tc = .12, AR = 10, fr = 4, Λ = 4, ρ = 1.225, μ = 1.81e-5)
     w = a.weight
     S = a.area
     dragtot = []
@@ -331,8 +331,8 @@ function dragdata(a::concept)
     velocity = []
     vs = range(1, stop = 50, length = 201)
     for v in vs
-        Dp = dragparasitic(S, v)
-        Di = draginduced(w, S, v)
+        Dp = dragparasitic(S, v, tc, AR, fr, Λ, ρ, μ)
+        Di = draginduced(w, S, v, tc, AR, fr, Λ, ρ, μ)
         Dt = Dp+Di
         push!(dragtot, Dt)
         push!(dragpar, Dp)
@@ -355,11 +355,11 @@ A struct of type `concept`
 
 `v::Float64` : velocity
 """
-function dragcalculator(a::concept, v)
+function dragcalculator(a::concept, v, tc = .12, AR = 10, fr = 4, Λ = 4, ρ = 1.225, μ = 1.81e-5)
     w = a.weight
     S = a.area
-    Dp = dragparasitic(S, v)
-    Di = draginduced(w, S, v)
+    Dp = dragparasitic(S, v, tc, AR, fr, Λ, ρ, μ)
+    Di = draginduced(w, S, v, tc, AR, fr, Λ, ρ, μ)
     Dt = Dp+Di
     return Dt
 end
@@ -373,14 +373,14 @@ Calculates the most efficient speed of the aircraft based on drag
 
 A struct of type `concept`
 """
-function designspeed(a::concept)
+function designspeed(a::concept, tc = .12, AR = 10, fr = 4, Λ = 4, ρ = 1.225, μ = 1.81e-5)
     w = a.weight
     S = a.area
     vs = range(1, stop = 50, length = 201)
     Dt = zeros(length(vs))
     for (i,v) in enumerate(vs)
-        Dp = dragparasitic(S, v)
-        Di = draginduced(w, S, v)
+        Dp = dragparasitic(S, v, tc, AR, fr, Λ, ρ, μ)
+        Di = draginduced(w, S, v, tc, AR, fr, Λ, ρ, μ)
         Dt[i] = Dp + Di
     end
     minimumdrag,iminimumdrag = findmin(Dt)
@@ -413,6 +413,56 @@ function liftcoefficient(a::concept;ρ = 1.225)
     println("design lift coefficient is: ", designliftcoeff)
     return vs, CL, designliftcoeff
 end
+
+function dragplot(a::concept)
+    S = a.area
+    w = a.weight
+    v, Dp, Di, Dt = dragdata(a)
+    plot(v,Dp, label = "Parasitic", xlabel = "Velocity (m/s)", ylabel = "Drag (N)")
+    plot!(v,Di, label = "Induced")
+    plot!(v,Dt, label = "Total")
+end
+
+"""
+    plotliftcoeff(a::concept)
+
+Plots lift coefficient with repsect to velocity.
+
+**Inputs**
+
+A struct of type `concept`
+"""
+function plotliftcoeff(a::concept)
+    S = a.area
+    w = a.weight
+    v, CL, _ = liftcoefficient(a)
+    plot(v,CL, label = "CL", xlabel = "Velocity (m/s)", ylabel = "CL")
+end
+
+function optimize()
+    as = range(.01,1, length  = 6)
+    ws = range(4,7, length  = 7)
+    speed = zeros(length(as), length(ws))
+    CL = zeros(length(as), length(ws))
+    for (i,a) in enumerate(as)
+        for (j,w) in enumerate(ws)
+            myplane = concept(a, "conventional", "front", w)
+            speed[i,j] = designspeed(myplane)
+            _,_,CL[i,j] = liftcoefficient(myplane)
+        end
+    end
+        println("wing area:", as[2])
+        println("weight:", ws[7]/.0098)
+        println("design speed:", speed[2,7])
+        println("design CL:", CL[2,7])
+        #plot(CL, xlabel = "index", ylabel = "designCL")
+        #plot(as, CL, xlabel = "wing area", ylabel = "designCL")
+        #plot(speed, xlabel = "index", ylabel = "designspeed")
+        #plot(as, speed, xlabel = "wing area", ylabel = "designspeed")
+
+
+end
+
 
 
 ############################

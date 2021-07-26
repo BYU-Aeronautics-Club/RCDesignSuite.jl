@@ -23,9 +23,14 @@ Preliminary aircraft type for storing prelminary design details
         polyhedral::Float64
         angleofattack::Float64
         sweep::Float64
-        aspectratio::Int64
-        taperratio::Float64
         finenessratio::Float64
         cg::Float64
+        df::Float64
+        weight::Float64
+        Clmax::Float64
+        machdive::Float64
+        qmax::Float64
+        maxloadfactor::Float64
+
 
     end
