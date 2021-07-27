@@ -7,7 +7,7 @@ Preliminary Design functions
 
 =#
 
-export addairfoilflaps, saveairfoilpolar, airfoilcomp
+#=export addairfoilflaps, saveairfoilpolar, airfoilcomp
 
 
 ############################
@@ -307,6 +307,7 @@ function runxfoil(filenames, datapath, Revalues, alpharange=collect(-5:20);
     end
 
 end
+=#
 
 
 ############################
@@ -534,19 +535,7 @@ function motorprop(a::prelim, Kvr, i0, R, v, d, num)
         _, _, etam[i] = motor(m_vbatt, m_Kv, m_i0, m_R, Omegavecmotor[i], throttle)
         _, _, etap[i] = prop(p_data, p_D, p_rho, Omegavecprop[i], Vdesign)
     end
-    println("Sherlock!\n\tTvec:$Tvec")
 
-
-    #= plot
-    figure hold on
-    plot(Omegavecmotor*30/pi, etam)
-    plot(Omegavecprop*30/pi, etap)
-    plot([Omega_d, Omega_d]*30/pi, [0 1], 'k--')
-    ylim([0, 1])
-    xlim([0, max(Omegavecmotor(end), Omegavecprop(end))*30/pi])
-    xlabel('Omega (RPM)')
-    ylabel('efficiency')
-    legend('motor', 'prop', 'design point')=#
 
     return Omegavecmotor, etam, etap, Omegavecprop, Omega_d, Vvec, Tvec, Dvec, etamvec, etapvec, Omegavec, ivec, Vdesign
 end
@@ -577,7 +566,119 @@ function plotmotorprop(a::prelim, Kvr, i0, R, v, d, num)
 
 end
 
+"""
+"""
 
+function flightenvelope(a::prelim)
+    #aircraft properties
+    b = a.span
+    S = b*(a.rootchord + a.tipchord)/2
+    tc = a.tipchord/a.rootchord
+    AR = b^2/S
+    fr = a.finenessratio
+    Λ = a.sweep
+    w = a.weight
+    Clmax = a.Clmax
+    md = a.machdive
+    qm = a.qmax
+
+    ceiling = 9000 #or ceilingcalc(s, tc, AR, fr, Λ, ρ)
+
+    alts = range(1, stop = 10000, length = 500)
+    vs = range(1, stop = 50, length = 500)
+
+    #atmosphere properties
+    ρ = zeros(length(alts))
+    a = zeros(length(alts))
+    for (i,_) in enumerate(alts)
+        ρ[i], _, a[i] = atmospherefit(alts[i])
+    end
+
+    #Vstall
+    function Vstall(w, S, Clmax, ρ)
+        Vstall = zeros(length(ρ))
+        for (i,_) in enumerate(ρ)
+            Vstall[i] = sqrt(2*w/(ρ[i]*S*Clmax))
+        end
+        return Vstall
+    end
+
+
+    """
+    ceilingcalc() calculates the true ceiling of an aircraft.  In this case we assume the ceiling is the legal altitude limit of RC aircraft
+    """
+    function ceilingcalc(a::prelim, vs, tc, AR, fr, Λ, ρ)
+        conceptual = concept(a.area, a.weight, "conventional", "front singular")
+
+        #velocity sweep
+        d = zeros(length(ρ))
+        for (i,_) in enumerate(ρ)
+            v = Vstall(a,ρ)
+            d[i] = dragcalculator(conceptual, v, tc, AR, fr, Λ, ρ[i])
+            #more calculations necessary to determine ceiling
+        end
+
+    end
+
+    function lowlimit(a, ρ, md, ceiling)
+        lowlim = zeros(length(a))
+        eas = sqrt(2*qm/1.225)
+        for (j,_) in enumerate(a)
+            i = length(alts) - j + 1
+            lowlim[i] = a[i]*md
+            q = .5*ρ[i]*lowlim[i]^2
+            if q > qm
+                lowlim[i] = eas/sqrt(ρ[i]/1.225)
+            end
+        end
+        return lowlim
+    end
+
+    Vstall = Vstall(w,S,Clmax,ρ)
+    ceilingIndex = findfirst(>=(ceiling), alts)
+    plot(Vstall[1:ceilingIndex],alts[1:ceilingIndex], ylims = (0, ceiling[1]+5000.0), label = "Vstall", xlabel = "speed", ylabel = "altitude")
+
+
+    lowlim = lowlimit(a, ρ, md, ceiling)
+    plot!(lowlim[1:ceilingIndex], alts[1:ceilingIndex], label = "speed limit")
+
+
+    endCeiling = findfirst(>=(lowlim[ceilingIndex]), Vstall)-1
+    ceilings = repeat([ceiling], length(vs))
+    plot!(Vstall[ceilingIndex:endCeiling], ceilings[ceilingIndex:endCeiling], label = "ceiling")
+
+
+
+end
+
+
+function Vndiagram(a::prelim, ρ = 1.225)
+
+    #aircraft properties
+    w = a.weight
+    b = a.span
+    S = b*(a.rootchord + a.tipchord)/2
+    vd = a.Vdive
+    nmax = a.maxloadfactor
+    Clmax = 1.59#a.Clmax
+
+    vs = range(1,stop = Vd, length = 500)
+    n = zeros(length(vs))
+
+    #stall
+    for (i,v) in enumerate(vs)
+        n[i] = (.5*Clmax*ρ*S*v^2)/w
+
+        #max load factor
+        if n[i] > nmax
+            n[i] = nmax
+        end
+    end
+
+    ns = range(0,stop = nmax, length = 500)
+    border = repeat(Vd,length(ns))
+
+end
 
 ############################
 #####    Structures    #####
