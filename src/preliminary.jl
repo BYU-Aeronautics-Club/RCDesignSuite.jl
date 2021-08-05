@@ -7,7 +7,7 @@ Preliminary Design functions
 
 =#
 
-#=export addairfoilflaps, saveairfoilpolar, airfoilcomp
+export addairfoilflaps, saveairfoilpolar, airfoilcomp
 
 
 ############################
@@ -307,7 +307,7 @@ function runxfoil(filenames, datapath, Revalues, alpharange=collect(-5:20);
     end
 
 end
-=#
+
 
 
 ############################
@@ -337,6 +337,7 @@ function motorprop(a::prelim, Kvr, i0, R, v, d, num)
     #plane
     b = a.span
     S = b*(a.rootchord + a.tipchord)/2
+    println(S,a.weight)
     tc = a.tipchord/a.rootchord
     AR = b^2/S
     fr = a.finenessratio
@@ -357,22 +358,23 @@ function motorprop(a::prelim, Kvr, i0, R, v, d, num)
     # prop
     # propeller data with columns J, CT, CP, eta (same format and normalization as from the UIUC site)
     p_data = [
-    0.114000  0.076484  0.027587  0.316058
-0.137387  0.073570  0.027426  0.368536
-0.162892  0.071181  0.027376  0.423540
-0.186150  0.067840  0.027053  0.466796
-0.210431  0.064873  0.026714  0.511018
-0.234359  0.061977  0.026415  0.549869
-0.257406  0.058687  0.025874  0.583850
-0.280778  0.055322  0.025320  0.613484
-0.304569  0.052196  0.024820  0.640489
-0.328855  0.048558  0.024093  0.662804
-0.353025  0.045015  0.023325  0.681314
-0.376161  0.041332  0.022424  0.693338
-0.401206  0.037167  0.021300  0.700062
-0.424991  0.033414  0.020222  0.702248
-0.450489  0.028709  0.018720  0.690871
-0.472925  0.024099  0.017050  0.668453
+    0.137   0.1426   0.0835   0.234
+    0.173   0.1400   0.0834   0.290
+    0.207   0.1368   0.0831   0.341
+    0.245   0.1329   0.0828   0.393
+    0.280   0.1288   0.0823   0.438
+    0.319   0.1232   0.0811   0.485
+    0.357   0.1173   0.0797   0.525
+    0.397   0.1105   0.0776   0.565
+    0.432   0.1046   0.0758   0.597
+    0.466   0.0986   0.0737   0.623
+    0.508   0.0908   0.0706   0.653
+    0.539   0.0848   0.0680   0.672
+    0.579   0.0776   0.0649   0.692
+    0.610   0.0725   0.0627   0.706
+    0.653   0.0652   0.0590   0.722
+    0.685   0.0590   0.0557   0.725
+    0.726   0.0520   0.0519   0.727
     ]
 
     p_D = d * 0.0254  # prop diamter (m)
@@ -382,7 +384,9 @@ function motorprop(a::prelim, Kvr, i0, R, v, d, num)
     rho = 1.225  # atmospheric density (kg/m^3)
     μ = 1.81e-5
     # other aircraft inputs
+
     Vdesign = designspeed(conceptual)  # design flight speed. Function from conceptiual.jl
+    println(Vdesign)
     q = .5*rho*Vdesign^2
 
     ac_CDp =  dragparasitic(S, Vdesign, tc, AR, fr, Λ, rho, μ)/(q*S) # parasitic drag coefficient. Function from conceptual.jl
@@ -567,6 +571,14 @@ function plotmotorprop(a::prelim, Kvr, i0, R, v, d, num)
 end
 
 """
+flightenvelope(a::prelim)
+
+Inputs
+A struct of type 'prelim'
+`ρ::Float64` : air density, assumed to be 1.225
+
+Outputs the altitude and speed limits of the aircraft
+
 """
 
 function flightenvelope(a::prelim)
@@ -582,10 +594,10 @@ function flightenvelope(a::prelim)
     md = a.machdive
     qm = a.qmax
 
-    ceiling = 9000 #or ceilingcalc(s, tc, AR, fr, Λ, ρ)
+    ceiling = 4000 #legal limit for RC aircraft or ceilingcalc(s, tc, AR, fr, Λ, ρ) for larger aircraft
 
-    alts = range(1, stop = 10000, length = 500)
-    vs = range(1, stop = 50, length = 500)
+    alts = range(1, stop = 40000, length = 5000)
+    vs = range(1, stop = 50, length = 5000)
 
     #atmosphere properties
     ρ = zeros(length(alts))
@@ -636,20 +648,30 @@ function flightenvelope(a::prelim)
 
     Vstall = Vstall(w,S,Clmax,ρ)
     ceilingIndex = findfirst(>=(ceiling), alts)
-    plot(Vstall[1:ceilingIndex],alts[1:ceilingIndex], ylims = (0, ceiling[1]+5000.0), label = "Vstall", xlabel = "speed", ylabel = "altitude")
+    plot(Vstall[1:ceilingIndex],alts[1:ceilingIndex], ylims = (0, ceiling[1]+ceiling[1]/2), label = "Vstall", xlabel = "speed", ylabel = "altitude")
 
 
     lowlim = lowlimit(a, ρ, md, ceiling)
     plot!(lowlim[1:ceilingIndex], alts[1:ceilingIndex], label = "speed limit")
 
 
-    endCeiling = findfirst(>=(lowlim[ceilingIndex]), Vstall)-1
+    endCeiling = findfirst(>=(lowlim[ceilingIndex]), Vstall)
     ceilings = repeat([ceiling], length(vs))
     plot!(Vstall[ceilingIndex:endCeiling], ceilings[ceilingIndex:endCeiling], label = "ceiling")
 
 
 
 end
+
+"""
+Vndiagram(a::prelim)
+
+Inputs
+A struct of type 'prelim'
+
+Outputs the load factor and speed limits of the aircraft
+
+"""
 
 
 function Vndiagram(a::prelim, ρ = 1.225)
@@ -658,25 +680,53 @@ function Vndiagram(a::prelim, ρ = 1.225)
     w = a.weight
     b = a.span
     S = b*(a.rootchord + a.tipchord)/2
-    vd = a.Vdive
-    nmax = a.maxloadfactor
-    Clmax = 1.59#a.Clmax
-
-    vs = range(1,stop = Vd, length = 500)
-    n = zeros(length(vs))
+    qm = a.qmax
+    vd = sqrt(2*qm/1.225)
+    vc = vd/1.25
+    Clmax = a.Clmax
 
     #stall
+    vs = range(1, stop = vd + vd*1.5, length = 1000)
+    nstall = zeros(length(vs))
     for (i,v) in enumerate(vs)
-        n[i] = (.5*Clmax*ρ*S*v^2)/w
-
-        #max load factor
-        if n[i] > nmax
-            n[i] = nmax
-        end
+        nstall[i] = (.5*Clmax*ρ*S*v^2)/w
     end
+    lim1 = findfirst(>=(a.maxloadfactor), nstall)
+    println("Sherlock\n\tlim1:$lim1")
+    plot(vs[1:lim1], nstall[1:lim1], label = "stall", xlabel = "speed", ylabel = "load factor", ylims = (-2, a.maxloadfactor + a.maxloadfactor*1.5))
 
-    ns = range(0,stop = nmax, length = 500)
-    border = repeat(Vd,length(ns))
+
+    #max maneuver load factor
+    nmax = repeat([a.maxloadfactor], length(vs))
+    lim2 = findfirst(>=(vd), vs)
+    plot!(vs[lim1:lim2], nmax[lim1:lim2], label = "nmmax")
+
+
+    #speed limit
+    ns = range(0,stop = nmax[1], length = length(vs))
+    border = repeat([vd],length(ns))
+    plot!(border, ns, label = "vd")
+
+    #negative stall
+    negnstall = zeros(length(vs))
+    for (i,v) in enumerate(vs)
+        negnstall[i] = -(.5*Clmax*ρ*S*v^2)/w
+    end
+    neglim1 = findfirst(<=(-1), negnstall)
+    plot!(vs[1:neglim1], negnstall[1:neglim1], label = "stall")
+
+    #minimum load factor
+    nmin = repeat([-1], length(vs))
+    neglim2 = findfirst(>=(vc), vs)
+    plot!(vs[neglim1:neglim2], nmin[neglim1:neglim2], label = "nmin")
+
+    #linear
+    linear  = zeros(length(vs))
+    for (i,v) in enumerate(vs)
+        linear[i] = -(v-vd)/(vc-vd)
+    end
+    plot!(vs[neglim2:lim2], linear[neglim2:lim2])
+
 
 end
 
