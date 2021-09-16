@@ -188,7 +188,7 @@ function sensitivity(design_variables,r,N)
             catch
 
                 #printl the cases that don't work so you can debug and make adjustments as needed.
-                println("i: $i, j: $j")
+                #println("i: $i, j: $j")
 
             end #try/catch
         end #for range
@@ -355,8 +355,8 @@ function final_plots(obj, obj0, dobj, r, labels,;
 
     legend()
 
-    #save the figure.
-    savefig(save_path*"sensitivitydobj.png",bbox_inches="tight")
+    #TODO:save the figure.
+    #savefig(save_path*"sensitivitydobj.png",bbox_inches="tight")
 
 end
 
