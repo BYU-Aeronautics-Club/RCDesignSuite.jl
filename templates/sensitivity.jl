@@ -18,11 +18,14 @@ Calculates score from mission 2 based on relavent inputs.
 
 **Inputs:**
 """
-function mission2(inputs=0.0, normalization_factor=1.0)
+function mission2(;inputs=0.0, normalization_factor=1.0)
 
     # TODO: This is where you put the mission 2 function.  Note that the inputs variable is probably an array that you'll want to unpack before using.
 
-    raw_score = inputs
+    # For 2021-22, we will assume that we have the fastest time of all teams.
+    # The score = 1 + (our#syringes/time) / (max#syringes/time). The max score is 2
+
+    raw_score = 2;
 
     return raw_score/normalization_factor
 
@@ -36,11 +39,14 @@ Calculates score from mission 3 based on relavent inputs.
 
 **Inputs:**
 """
-function mission3(inputs=0.0, normalization_factor=1.0)
+function mission3(;inputs=0.0, normalization_factor=1.0)
 
     # TODO: This is where you put the mission 3 function.  Note that the inputs variable is probably an array that you'll want to unpack before using.
 
-    raw_score = inputs
+    # For 2021-22, we will assume that we have the fastest time of all teams.
+    # The score = 2 + (our#successful_deployments) / (max#successful_deployments). Max score = 3
+
+    raw_score = 3 + inputs[1]/inputs[2] # FIXME: This was just for fun to see if it worked
 
     return raw_score/normalization_factor
 
@@ -56,11 +62,14 @@ Calculates score from ground mission based on relavent inputs.
 
 **Inputs:**
 """
-function ground_mission(inputs=1.0, normalization_factor=1.0)
+function ground_mission(;inputs = 1.0, normalization_factor = 1.0)
 
-    # TODO: This is where you put the mission 3 function.  Note that the inputs variable is probably an array that you'll want to unpack before using.
+    # TODO: This is where you put the ground mission function.  Note that the inputs variable is probably an array that you'll want to unpack before using.
 
-    raw_score = inputs
+    # For 2021-22, we will assume that we have the fastest time of all teams.
+    # The score = min_time/our_time, which means that assuming a value of 1 gives us the maximum score.
+
+    raw_score = 1.0
 
     return raw_score/normalization_factor
 
@@ -98,30 +107,28 @@ function objective(design_variables; return_all=false)
     ### GROUND MISSION ###
     # TODO: Here is where you set up the inputs for the ground mission if you desire.  Note that the function is set up to return 1.0 by default. (assumes perfect score)
 
-
-
-    GM = ground_mission()
+    GM_Inputs = 0.0; # Arbitrary. We hard-code the final value in ground_mission()
+    GM = ground_mission(normalization_factor = GM_norm_factor)
 
 
     ### FLIGHT MISSION 2 ###
     # TODO: Here is where you set up the inputs for flight mission 2 and call the objective function.
 
-
     # TODO the mission functions output the normalized portion of the score, if there is some additive amount in addition, put that in here.
-    M2 = mission2(M2_inputs, M2_norm_factor)
+    M2_Inputs = 0.0; # Arbitrary. We hard-code the final value in mission2()
+    M2 = mission2(normalization_factor = M2_norm_factor)
 
 
     ### FLIGHT MISSION 3 ###
     # TODO: Here is where you set up the inputs for flight mission 3 and call the objective function.
-
+    M3_inputs = [W, S]; # Arbitrary. We hard-code the final value in mission3()
 
     # TODO the mission functions output the normalized portion of the score, if there is some additive amount in addition, put that in here.
-    M3 = mission3(M3_inputs, M2_norm_factor)
+    M3 = mission3(inputs = M3_inputs,normalization_factor = M2_norm_factor)
 
 
 
     ### SUM UP OBJECTIVES ###
-
     totalpoints = 100.0 + 1.0 + GM + M2 + M3 #assumes perfect score (100.0) on report and M1 completion (1.0)
 
     if return_all
@@ -151,10 +158,10 @@ function sensitivity(design_variables,r,N)
     ### GET NORMALIZATION FACTORS ###
     # For each input (other than normalization factors), loop through defined range (r) from the nominal
 
-    # Initialize normalization factors.
-    GM_norm_factor = 0.0
-    M2_norm_factor = 0.0
-    M3_norm_factor = 0.0
+    # Initialize normalization factors. Setting these initially to 0.0 results in errors (likely divide by zero when normalizing)
+    GM_norm_factor = 1.0
+    M2_norm_factor = 1.0
+    M3_norm_factor = 1.0
 
     # Run once to get maxima (or mean, or whatever you want to normalize by) for mission normalization factors.
     for i = 1:length(design_variables)-3 #(Don't include norm factors)
@@ -187,7 +194,7 @@ function sensitivity(design_variables,r,N)
             catch
 
                 #printl the cases that don't work so you can debug and make adjustments as needed.
-                println("i: $i, j: $j")
+                #println("i: $i, j: $j")
 
             end #try/catch
         end #for range
@@ -265,7 +272,7 @@ Create and save plots to go into reports.
 - dobj::Array : Array of dobj/dx for each design variable.
 - lables::Array{String} : Array of design variable names.
 """
-function intermediate_plots(nvar, obj, obj0, dobj;
+function intermediate_plots(nvar, obj, obj0, dobj, r;
                         labels = [
                                 "W";
                                 "S";
@@ -335,8 +342,8 @@ function final_plots(obj, obj0, dobj, r, labels,;
 
     legend()
 
-    #save the figure.
-    savefig(save_path*"sensitivityobj.png",bbox_inches="tight")
+    #TODO: save the figure.
+    #savefig(save_path*"sensitivityobj.png",bbox_inches="tight")
 
 
 
@@ -354,8 +361,8 @@ function final_plots(obj, obj0, dobj, r, labels,;
 
     legend()
 
-    #save the figure.
-    savefig(save_path*"sensitivitydobj.png",bbox_inches="tight")
+    #TODO:save the figure.
+    #savefig(save_path*"sensitivitydobj.png",bbox_inches="tight")
 
 end
 
@@ -369,13 +376,18 @@ function run_sensitivity()
 
     # TODO: Define all the variables that might be important.
 
-    W               = 0.0 # Aircraft Weight
-    S               = 0.0 # Wing Area
-    CD0             = 0.0 # Zero Lift Drag Coeff of Aircraft
-    eta             = 0.0 # Total Propulsive Efficiency
-    P               = 0.0 # Available Battery Power
+    W               = 1.0 # Aircraft Weight
+    S               = 1.0 # Wing Area
+    CD0             = 1.0 # Zero Lift Drag Coeff of Aircraft
+    eta             = 1.0 # Total Propulsive Efficiency
+    P               = 1.0 # Available Battery Power
 
-
+    labels = [# TODO: Create a vector for the labels that match your design variables, so you know what the following plots are for.
+            "W";
+            "S";
+            "CD0";
+            "eta";
+            "P";]
 
     # TODO: Define input array for objective function.
     design_variables        = zeros(8)
@@ -384,6 +396,7 @@ function run_sensitivity()
     design_variables[3]     = CD0 # Zero Lift Drag Coeff of Aircraft
     design_variables[4]     = eta # Total Propulsive Efficiency
     design_variables[5]     = P   # Available Battery Power
+
     # Normalization Factors are the last 3 inputs in this example
     design_variables[end-2] = 1.0 # Initialize GM_norm_factor to 1.0
     design_variables[end-1] = 1.0 # Initialize M2_norm_factor to 1.0
@@ -402,13 +415,7 @@ function run_sensitivity()
 
 
     ## Plot Sensitivities Separately
-    intermediate_plots(design_varibles, obj, obj0, dobj;
-    labels = [# TODO: Create a vector for the labels that match your design variables, so you know what the following plots are for.
-            "W";
-            "S";
-            "CD0";
-            "eta";
-            "P";])
+    intermediate_plots(length(design_variables), obj, obj0, dobj, r; labels = labels)
 
 
     ## Create Final Plots for Reports

@@ -11,5 +11,6 @@ using Printf
 include("aircrafttypes.jl")
 include("commonplots.jl")
 include("conceptual.jl")
+include("../templates/sensitivity.jl")
 
 end # module
