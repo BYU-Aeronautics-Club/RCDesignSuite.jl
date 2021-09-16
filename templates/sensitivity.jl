@@ -105,7 +105,8 @@ function objective(design_variables; return_all=false)
 
     ### FLIGHT MISSION 2 ###
     # TODO: Here is where you set up the inputs for flight mission 2 and call the objective function.
-
+    M2_inputs = 0.0;
+    M2_norm_factor = 1.0;
 
     # TODO the mission functions output the normalized portion of the score, if there is some additive amount in addition, put that in here.
     M2 = mission2(M2_inputs, M2_norm_factor)
@@ -113,7 +114,8 @@ function objective(design_variables; return_all=false)
 
     ### FLIGHT MISSION 3 ###
     # TODO: Here is where you set up the inputs for flight mission 3 and call the objective function.
-
+    M3_inputs = 0.0;
+    M3_norm_factor = 1.0;
 
     # TODO the mission functions output the normalized portion of the score, if there is some additive amount in addition, put that in here.
     M3 = mission3(M3_inputs, M2_norm_factor)
@@ -121,7 +123,6 @@ function objective(design_variables; return_all=false)
 
 
     ### SUM UP OBJECTIVES ###
-
     totalpoints = 100.0 + 1.0 + GM + M2 + M3 #assumes perfect score (100.0) on report and M1 completion (1.0)
 
     if return_all
@@ -265,7 +266,7 @@ Create and save plots to go into reports.
 - dobj::Array : Array of dobj/dx for each design variable.
 - lables::Array{String} : Array of design variable names.
 """
-function intermediate_plots(nvar, obj, obj0, dobj;
+function intermediate_plots(nvar, obj, obj0, dobj, r;
                         labels = [
                                 "W";
                                 "S";
@@ -335,8 +336,8 @@ function final_plots(obj, obj0, dobj, r, labels,;
 
     legend()
 
-    #save the figure.
-    savefig(save_path*"sensitivityobj.png",bbox_inches="tight")
+    #TODO: save the figure.
+    #savefig(save_path*"sensitivityobj.png",bbox_inches="tight")
 
 
 
@@ -375,7 +376,12 @@ function run_sensitivity()
     eta             = 0.0 # Total Propulsive Efficiency
     P               = 0.0 # Available Battery Power
 
-
+    labels = [# TODO: Create a vector for the labels that match your design variables, so you know what the following plots are for.
+            "W";
+            "S";
+            "CD0";
+            "eta";
+            "P";]
 
     # TODO: Define input array for objective function.
     design_variables        = zeros(8)
@@ -402,13 +408,7 @@ function run_sensitivity()
 
 
     ## Plot Sensitivities Separately
-    intermediate_plots(design_varibles, obj, obj0, dobj;
-    labels = [# TODO: Create a vector for the labels that match your design variables, so you know what the following plots are for.
-            "W";
-            "S";
-            "CD0";
-            "eta";
-            "P";])
+    intermediate_plots(length(design_variables), obj, obj0, dobj, r; labels = labels)
 
 
     ## Create Final Plots for Reports
