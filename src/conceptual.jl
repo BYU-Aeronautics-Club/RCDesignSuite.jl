@@ -409,10 +409,20 @@ end
 
 
 """
-Need a function to estimate fuselage volume
-"""
-function get_fuselage_volume()
+    get_fuselage_volume(n,v)
 
+Calculate fuselage volume based on number and volume of repeated payload components.  Also optional argument to add miscellanous extra volume items (batteries, ESC's, etc.)
+
+**Inputs:**
+
+`n::Int` : number of repeated payload items (internally stored in fuselage)
+
+`v::Float64` : volume of singe payload item.
+
+`miscvol::Float64` : additional volume, e.g. from batteries, esc's, etc.
+"""
+function get_fuselage_volume(n,v,miscvol=0.0)
+    return v*n + miscvol
 end
 
 
