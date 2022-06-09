@@ -686,20 +686,19 @@ function Vndiagram(a::prelim, ρ = 1.225)
     Clmax = a.Clmax
 
     #stall
-    vs = range(1, stop = vd + vd*1.5, length = 1000)
+    vs = range(1, stop = vd + vd*1.5, length = 10000)
     nstall = zeros(length(vs))
     for (i,v) in enumerate(vs)
         nstall[i] = (.5*Clmax*ρ*S*v^2)/w
     end
-    lim1 = findfirst(>=(a.maxloadfactor), nstall)
-    println("Sherlock\n\tlim1:$lim1")
-    plot(vs[1:lim1], nstall[1:lim1], label = "stall", xlabel = "speed", ylabel = "load factor", ylims = (-2, a.maxloadfactor + a.maxloadfactor*1.5))
-
+    lim1 = findfirst(>=(nmax), nstall)
+    #println("Sherlock\n\tlim1:$lim1")
+    plot(vs[1:lim1], nstall[1:lim1], label = "stall", xlabel = "speed", ylabel = "load factor", ylims = (-2, nmax + nmax*1.5))    
 
     #max maneuver load factor
-    nmax = repeat([a.maxloadfactor], length(vs))
+    nmax = repeat([nmax], length(vs))
     lim2 = findfirst(>=(vd), vs)
-    plot!(vs[lim1:lim2], nmax[lim1:lim2], label = "nmmax")
+    plot!(vs[lim1:lim2], nmax[lim1:lim2], label = "nmax")
 
 
     #speed limit
@@ -726,8 +725,6 @@ function Vndiagram(a::prelim, ρ = 1.225)
         linear[i] = -(v-vd)/(vc-vd)
     end
     plot!(vs[neglim2:lim2], linear[neglim2:lim2])
-
-
 end
 
 ############################

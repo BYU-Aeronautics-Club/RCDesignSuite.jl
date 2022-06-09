@@ -114,8 +114,8 @@ Calculate distance from stand still to lift off. (eqn 7.81)
 
 `P::Float64` : Net power including drag
 """
-function liftoffdistance(W,g,rho,S,Clmax,P)
-    return (1.629*W^(5/2))/(g*P*(rho*S*Clmax)^(3/2))
+function liftoffdistance(W,rho,S,Clmax,P)
+    return (1.629*W^(5/2))/(P*(rho*S*Clmax)^(3/2))
 end
 
 
@@ -322,10 +322,10 @@ Outputs the induced, parasitic, and total drag of an aircraft with respect to ve
 
 A struct of type `concept`
 """
-function dragdata(a::concept, tc = .12, AR = 10, fr = 4, Λ = 4, ρ = 1.225, μ = 1.81e-5)
+function dragdata(a::concept, tc = .12, AR = 10, Λ = 4, ρ = 1.225, μ = 1.81e-5)
+    fr = a.fr
     w = a.weight
     S = a.area
-    dragtot = []
     dragpar = []
     dragin =[]
     velocity = []
@@ -437,6 +437,85 @@ function plotliftcoeff(a::concept)
     w = a.weight
     v, CL, _ = liftcoefficient(a)
     plot(v,CL, label = "CL", xlabel = "Velocity (m/s)", ylabel = "CL")
+end
+
+
+"""
+    scorecalculator(fuseL,fuseD, chord, span; ditance = 71)
+
+predicts the score based on the geometry of the plane
+
+**Inputs:**
+
+`fuseL::float64` : length of fuselage
+
+`fuseD::Float64` : diameter of fuselage
+
+`chord::Float64` :  mean aerodynamic chord
+
+`span::Float64` : span
+
+`distance::Float64` : the distance traveled in one lap in meters
+
+`timeUnload::Float64` : the time needed to unload one box
+"""
+
+function scorecalculator(fuseL,fuseD, chord, span; distance = 1000, timeUnload = 50, rho = 1.225)
+
+    volume = (pi/4)*fuseL*fuseD^2                                   #total volume of the fuselage
+    nsyringe = volume/(.00003*1.2)                                  #total number of syringes that can fit in that volume.  total volume/(volume of one 3mL syringe times a factor of 1.2 for extra volume on syringe)
+    nboxes = nsyringe/10                                            # ten syringes to each box
+    weight = 9.81*(.226796*nboxes + .6)                            #weight in newtons, assuming that the weight of the plane plus the weight of any needed mechanisms is 600g
+    S = chord*span                                              #area of the wing
+    fr = fuseL/fuseD                                              #area in meters squared
+    speed = designspeed(concept(S, weight, fr, ","))            #design speed determined by drag calculations in conceptual.jl
+
+
+    takeOffDistance = liftoffdistance(weight,rho,S,Clmax,P)          #
+    if (takeOffDistance <= 7.6)
+    time = 3*distance/speed                                     #time for completion of mission 1
+
+    time2 = nboxes*(distance/speed + timeUnload)                 #time needed to drop off n boxes
+
+    score1 = nsyringe/time                                      #score for mission 1
+
+    if time2 < 590                                              #making sure that we can safely drop off all loaded boxes(in 590 secoonds)
+        score2 = nboxes                                             #score for mission 2
+    else
+        score2 = 590/(distance/speed + timeUnload)                 #number of boxes dropped off when time runs out
+    end
+
+    score = score1+score2
+
+    return score, speed, time, weight, S
+
+end
+
+function optimization()
+    spans = range(.3, 2.4384, length = 3)
+    chords = range(8.333, spans[end]/2, length = 3)
+    fuseDs = range(.1331, 2*.1331, length = 3)
+    fuseLs = spans
+    scores = zeros(length(spans), length(chords), length(fuseDs), length(fuseLs))
+    speeds = zeros(length(spans), length(chords), length(fuseDs), length(fuseLs))
+    times = zeros(length(spans), length(chords), length(fuseDs), length(fuseLs))
+    weights = zeros(length(spans), length(chords), length(fuseDs), length(fuseLs))
+    Ss = zeros(length(spans), length(chords), length(fuseDs), length(fuseLs))
+
+
+
+    for (a, span) in enumerate(spans)
+        for (b, chord) in enumerate(chords)
+            for (c, fuseD) in enumerate(fuseDs)
+                for (d, fuseL) in enumerate(fuseLs)
+                    scores[a,b,c,d], speeds[a,b,c,d], times[a,b,c,d], weights[a,b,c,d], Ss[a,b,c,d] = scorecalculator(fuseLs[d], fuseDs[c], chords[b], spans[a])
+
+                end
+            end
+        end
+    end
+    score, index = findmax(scores)
+    return score, speeds[index], times[index], weights[index], Ss[index]
 end
 
 function optimize()
